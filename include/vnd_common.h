@@ -31,6 +31,9 @@
 /* Maximum message length (excluding 3 byte opcode) is 377 bytes */
 #define BT_MESH_VENDOR_MSG_MAXLEN_SET    (377)
 
+/* Maximum message length (excluding 3 byte opcode) is sizeof(bt_mesh_vendor_get), i.e. 2 bytes */
+#define BT_MESH_VENDOR_MSG_MAXLEN_GET    (2)
+
 /* Status message max length (excluding 3 byte opcode) is 377 bytes */
 #define BT_MESH_VENDOR_MSG_MAXLEN_STATUS (377)
 
@@ -50,6 +53,16 @@ struct bt_mesh_vendor_status {
  */
 struct bt_mesh_vendor_set {
 	struct net_buf_simple *buf;
+};
+
+/**
+ * @brief Vendor Get Message
+ *
+ * The length parameter specifies how much status data to return.
+ */
+struct bt_mesh_vendor_get {
+	/** Length parameter */
+	uint16_t length;
 };
 
 /** @} */

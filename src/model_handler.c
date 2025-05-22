@@ -37,6 +37,7 @@ static int handle_vendor_set(struct bt_mesh_vendor_srv *srv,
 
 static int handle_vendor_get(struct bt_mesh_vendor_srv *srv,
 				struct bt_mesh_msg_ctx *ctx,
+				const struct bt_mesh_vendor_get *get,
 				struct bt_mesh_vendor_status *rsp);
 
 static const struct bt_mesh_vendor_srv_handlers vendor_srv_handlers = {
@@ -122,15 +123,25 @@ static int handle_vendor_set(struct bt_mesh_vendor_srv *srv,
 /* Server get callback */
 static int handle_vendor_get(struct bt_mesh_vendor_srv *srv,
 				struct bt_mesh_msg_ctx *ctx,
+				const struct bt_mesh_vendor_get *get,
 				struct bt_mesh_vendor_status *rsp)
 {
-	LOG_INF("Received GET request");
+	size_t len = strlen(status_msg);
+
+	/* Check if length parameter is provided and limit response accordingly */
+	if (get) {
+		len = (get->length < len) ? get->length : len;
+
+		LOG_INF("GET with length: %u", get->length);
+	} else {
+		LOG_INF("GET without length, sending full response");
+	}
 
 	/* Populate the response status message */
 	net_buf_simple_reset(rsp->buf);
-	net_buf_simple_add_mem(rsp->buf, status_msg, strlen(status_msg));
+	net_buf_simple_add_mem(rsp->buf, status_msg, len);
 
-	LOG_INF("Sending STATUS response");
+	LOG_INF("Sending STATUS response with length: %zu", len);
 
 	return 0; /* Return success to send response immediately */
 }
@@ -188,11 +199,6 @@ int vendor_model_send_set_unack(const uint8_t *data, size_t len)
 	return bt_mesh_vendor_cli_set_unack(&vendor_cli, NULL, &set);
 }
 
-int vendor_model_send_get(void)
-{
-	return bt_mesh_vendor_cli_get(&vendor_cli, NULL, NULL);
-}
-
 /* Handle button events */
 static void button_handler(uint32_t pressed, uint32_t changed)
 {
@@ -213,12 +219,23 @@ static void button_handler(uint32_t pressed, uint32_t changed)
 			LOG_ERR("Failed to send SET UNACK message (err: %d)", err);
 		}
 	}
-
 	if (pressed & changed & BIT(DK_BTN3)) {
 		/* Send GET message to request status */
-		err = vendor_model_send_get();
+		err = bt_mesh_vendor_cli_get(&vendor_cli, NULL, NULL, NULL);
 		if (err) {
 			LOG_ERR("Failed to send GET message (err: %d)", err);
+		}
+	}
+	if (pressed & changed & BIT(DK_BTN4)) {
+		/* Send GET message with length parameter set to 1 */
+		struct bt_mesh_vendor_get get = {
+			.length = 1
+		};
+
+		LOG_INF("Sending GET message with length parameter set to 1");
+		err = bt_mesh_vendor_cli_get(&vendor_cli, NULL, &get, NULL);
+		if (err) {
+			LOG_ERR("Failed to send GET message with length=1 (err: %d)", err);
 		}
 	}
 }

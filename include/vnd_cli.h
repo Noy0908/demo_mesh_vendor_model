@@ -90,11 +90,13 @@ int bt_mesh_vendor_cli_set(struct bt_mesh_vendor_cli *cli,
  *
  * @param cli      Vendor Client model
  * @param ctx      Message context, or NULL to use the configured publish parameters
+ * @param get      Vendor get message parameter (see @ref bt_mesh_vendor_get), can be NULL
  * @param rsp      Status response buffer, filled with the response data on success
  * @return 0 on success, or negative error code otherwise
  */
 int bt_mesh_vendor_cli_get(struct bt_mesh_vendor_cli *cli,
 			   struct bt_mesh_msg_ctx *ctx,
+			   const struct bt_mesh_vendor_get *get,
 			   struct bt_mesh_vendor_status *rsp);
 
 /**

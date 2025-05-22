@@ -20,26 +20,45 @@ The sample implements four message types:
 
 1. **Vendor_SET (Opcode: 0x10 + Company ID)**
    - Sent from client to server
-   - Carries arbitrary length data payload (up to 377 bytes)
    - STATUS response is expected to be sent by the application
    - Acknowledged message type
 
+   | Field Name | Size (octets) | Description                                 |
+   |------------|--------------|----------------------------------------------|
+   | Opcode     | 3            | 0x10 + Company ID (Little Endian)            |
+   | Data       | 0–377        | Arbitrary data payload                       |
+
 2. **Vendor_Set_Unack (Opcode: 0x11 + Company ID)**
    - Sent from client to server
-   - Carries arbitrary length data payload (up to 377 bytes)
    - No STATUS response is sent by the application
    - Unacknowledged message type (send and forget)
 
+   | Field Name | Size (octets) | Description                                 |
+   |------------|--------------|----------------------------------------------|
+   | Opcode     | 3            | 0x11 + Company ID (Little Endian)            |
+   | Data       | 0–377        | Arbitrary data payload                       |
+
 3. **Vendor_GET (Opcode: 0x12 + Company ID)**
    - Sent from client to server
-   - No payload
+   - Supports an optional `length` parameter
+   - If the `length` parameter is provided, the server will limit the STATUS response payload to the specified number of bytes
+   - If not provided, the server sends the full response
    - Requires acknowledgment with a Vendor_STATUS response
+
+   | Field Name | Size (octets) | Description                                 |
+   |------------|--------------|----------------------------------------------|
+   | Opcode     | 3            | 0x12 + Company ID (Little Endian)            |
+   | Length     | 2 (optional) | Optional. Number of bytes requested in reply.|
 
 4. **Vendor_STATUS (Opcode: 0x13 + Company ID)**
    - Sent from server to client
-   - Contains response data (up to 377 bytes)
    - Sent in response to GET or SET messages
    - Automatically sent by the server when the handler returns success (0)
+
+   | Field Name | Size (octets) | Description                                 |
+   |------------|--------------|----------------------------------------------|
+   | Opcode     | 3            | 0x13 + Company ID (Little Endian)            |
+   | Data       | 0–377        | Response data payload                        |
 
 ## Requirements
 
@@ -77,8 +96,9 @@ The sample implements four message types:
    * Configure publish/subscribe addresses to establish communication between the devices
 3. Press Button 1 on one of the devices to send a "Hello World" message using Vendor_Set message (acknowledged)
 4. Press Button 2 on one of the devices to send a "Hello World" message using Vendor_Set_Unack message (unacknowledged)
-5. Press Button 3 on one of the devices to send a Vendor_Get request message
-6. Observe the message exchange in the console logs
+5. Press Button 3 on one of the devices to send a Vendor_Get request message (no parameters, full response)
+6. Press Button 4 on one of the devices to send a Vendor_Get request message with the optional `length` parameter set to 1 (response will be truncated to 1 byte)
+7. Observe the message exchange in the console logs
 
 ### Expected Output
 
