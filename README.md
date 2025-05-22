@@ -16,19 +16,26 @@ The vendor model is defined with:
 
 ### Message Types
 
-The sample implements three message types:
+The sample implements four message types:
 
 1. **Vendor_SET (Opcode: 0x10 + Company ID)**
    - Sent from client to server
    - Carries arbitrary length data payload (up to 377 bytes)
    - STATUS response is expected to be sent by the application
+   - Acknowledged message type
 
-2. **Vendor_GET (Opcode: 0x11 + Company ID)**
+2. **Vendor_Set_Unack (Opcode: 0x11 + Company ID)**
+   - Sent from client to server
+   - Carries arbitrary length data payload (up to 377 bytes)
+   - No STATUS response is sent by the application
+   - Unacknowledged message type (send and forget)
+
+3. **Vendor_GET (Opcode: 0x12 + Company ID)**
    - Sent from client to server
    - No payload
    - Requires acknowledgment with a Vendor_STATUS response
 
-3. **Vendor_STATUS (Opcode: 0x12 + Company ID)**
+4. **Vendor_STATUS (Opcode: 0x13 + Company ID)**
    - Sent from server to client
    - Contains response data (up to 377 bytes)
    - Sent in response to GET or SET messages
@@ -69,10 +76,13 @@ The sample implements three message types:
    * Add them to the same network
    * Configure publish/subscribe addresses to establish communication between the devices
 3. Press Button 1 on one of the devices to send a "Hello World" message using Vendor_Set message (acknowledged)
-4. Press Button 2 on one of the devices to send a Vendor_Get request message
-5. Observe the message exchange in the console logs
+4. Press Button 2 on one of the devices to send a "Hello World" message using Vendor_Set_Unack message (unacknowledged)
+5. Press Button 3 on one of the devices to send a Vendor_Get request message
+6. Observe the message exchange in the console logs
 
 ### Expected Output
+
+#### For Acknowledged SET Message (Button 1)
 
 On the device that receives the SET message, you should see:
 

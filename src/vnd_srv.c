@@ -41,6 +41,33 @@ static int handle_set(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx 
 	return 0;
 }
 
+static int handle_set_unack(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx *ctx,
+		     struct net_buf_simple *buf)
+{
+	if (buf->len > BT_MESH_VENDOR_MSG_MAXLEN_STATUS) {
+		return -EMSGSIZE;
+	}
+
+	struct bt_mesh_vendor_srv *srv = model->rt->user_data;
+	struct bt_mesh_vendor_set set = {
+		.buf = buf
+	};
+
+	LOG_DBG("Received SET UNACK message, data length %d", buf->len);
+
+	if (srv->handlers && srv->handlers->set) {
+		net_buf_simple_reset(&srv->status_msg);
+		struct bt_mesh_vendor_status rsp = {
+			.buf = &srv->status_msg
+		};
+
+		/* Call the same handler but don't send any response */
+		srv->handlers->set(srv, ctx, &set, &rsp);
+	}
+
+	return 0;
+}
+
 static int handle_get(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx *ctx,
 		     struct net_buf_simple *buf)
 {
@@ -64,6 +91,7 @@ static int handle_get(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx 
 
 const struct bt_mesh_model_op _bt_mesh_vendor_srv_op[] = {
 	{ BT_MESH_VENDOR_OP_SET, 0, handle_set },
+	{ BT_MESH_VENDOR_OP_SET_UNACK, 0, handle_set_unack },
 	{ BT_MESH_VENDOR_OP_GET, 0, handle_get },
 	BT_MESH_MODEL_OP_END,
 };

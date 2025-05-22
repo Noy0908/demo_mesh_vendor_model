@@ -97,6 +97,18 @@ int bt_mesh_vendor_cli_get(struct bt_mesh_vendor_cli *cli,
 			   struct bt_mesh_msg_ctx *ctx,
 			   struct bt_mesh_vendor_status *rsp);
 
+/**
+ * @brief Send a vendor set unacknowledged message
+ *
+ * @param cli      Vendor Client model
+ * @param ctx      Message context, or NULL to use the configured publish parameters
+ * @param set      Vendor set message to send
+ * @return 0 on success, or negative error code otherwise
+ */
+int bt_mesh_vendor_cli_set_unack(struct bt_mesh_vendor_cli *cli,
+			         struct bt_mesh_msg_ctx *ctx,
+			         const struct bt_mesh_vendor_set *set);
+
 #ifdef __cplusplus
 }
 #endif

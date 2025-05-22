@@ -174,6 +174,20 @@ int vendor_model_send_set(const uint8_t *data, size_t len, struct bt_mesh_vendor
 	return bt_mesh_vendor_cli_set(&vendor_cli, NULL, &set, rsp);
 }
 
+int vendor_model_send_set_unack(const uint8_t *data, size_t len)
+{
+	LOG_INF("Sending SET UNACK message: \"%s\"", (char *)data);
+
+	NET_BUF_SIMPLE_DEFINE(temp_buf, BT_MESH_VENDOR_MSG_MAXLEN_SET);
+	net_buf_simple_add_mem(&temp_buf, data, len);
+
+	struct bt_mesh_vendor_set set = {
+		.buf = &temp_buf
+	};
+
+	return bt_mesh_vendor_cli_set_unack(&vendor_cli, NULL, &set);
+}
+
 int vendor_model_send_get(void)
 {
 	return bt_mesh_vendor_cli_get(&vendor_cli, NULL, NULL);
@@ -193,6 +207,14 @@ static void button_handler(uint32_t pressed, uint32_t changed)
 	}
 
 	if (pressed & changed & BIT(DK_BTN2)) {
+		/* Send SET UNACK message with "Hello World" string */
+		err = vendor_model_send_set_unack((const uint8_t *)set_msg, strlen(set_msg));
+		if (err) {
+			LOG_ERR("Failed to send SET UNACK message (err: %d)", err);
+		}
+	}
+
+	if (pressed & changed & BIT(DK_BTN3)) {
 		/* Send GET message to request status */
 		err = vendor_model_send_get();
 		if (err) {
