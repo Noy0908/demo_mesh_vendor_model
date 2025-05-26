@@ -1,0 +1,6 @@
+{
+    "nrf-connect.debugging.bindings": {
+        "${workspaceFolder}/build_thingy52": "Launch build_thingy52",
+        "${workspaceFolder}/build_thingy52/demo_mesh_vendor_model": "Launch build_thingy52"
+    }
+}

@@ -58,12 +58,14 @@ struct bt_mesh_vendor_srv_handlers {
 	 *
 	 * @param srv    Vendor Server model
 	 * @param ctx    Message context
+	 * @param get    Vendor get message parameters, can be NULL
 	 * @param rsp    Vendor status message to be sent
 	 *
 	 * @return 0 on success, or negative error code to send response later or to skip response
 	 */
 	int (*const get)(struct bt_mesh_vendor_srv *srv,
 			  struct bt_mesh_msg_ctx *ctx,
+			  const struct bt_mesh_vendor_get *get,
 			  struct bt_mesh_vendor_status *rsp);
 };
 

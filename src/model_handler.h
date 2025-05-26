@@ -34,4 +34,13 @@ int vendor_model_send_set(const uint8_t *data, size_t len, struct bt_mesh_vendor
  */
 int vendor_model_send_get(void);
 
+/**
+ * @brief Send a Vendor Set Unacknowledged message
+ *
+ * @param data     Data to send
+ * @param len      Length of data
+ * @return 0 on success, negative error code otherwise
+ */
+int vendor_model_send_set_unack(const uint8_t *data, size_t len);
+
 #endif /* MODEL_HANDLER_H__ */

@@ -45,7 +45,8 @@ static void bt_ready(int err)
 	printk("Mesh initialized\n");
 
 	printk("Press Button 1 to send SET message\n");
-	printk("Press Button 2 to send GET request\n");
+	printk("Press Button 2 to send SET UNACK request\n");
+	printk("Press Button 3 to send GET request\n");
 }
 
 int main(void)

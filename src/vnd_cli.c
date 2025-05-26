@@ -99,10 +99,20 @@ int bt_mesh_vendor_cli_set(struct bt_mesh_vendor_cli *cli,
 
 int bt_mesh_vendor_cli_get(struct bt_mesh_vendor_cli *cli,
 			   struct bt_mesh_msg_ctx *ctx,
+			   const struct bt_mesh_vendor_get *get,
 			   struct bt_mesh_vendor_status *rsp)
 {
-	BT_MESH_MODEL_BUF_DEFINE(msg, BT_MESH_VENDOR_OP_GET, 0);
+	/* Define buffer with enough space for the length parameter if present */
+	BT_MESH_MODEL_BUF_DEFINE(msg, BT_MESH_VENDOR_OP_GET, BT_MESH_VENDOR_MSG_MAXLEN_GET);
 	bt_mesh_model_msg_init(&msg, BT_MESH_VENDOR_OP_GET);
+
+	/* Add optional length parameter if present */
+	if (get) {
+		LOG_DBG("Sending GET message with length parameter: %u", get->length);
+		net_buf_simple_add_le16(&msg, get->length);
+	} else {
+		LOG_DBG("Sending GET message without length parameter");
+	}
 
 	struct bt_mesh_msg_rsp_ctx rsp_ctx = {
 		.ack = &cli->ack_ctx,
@@ -112,4 +122,25 @@ int bt_mesh_vendor_cli_get(struct bt_mesh_vendor_cli *cli,
 	};
 
 	return bt_mesh_msg_ackd_send(cli->model, ctx, &msg, rsp ? &rsp_ctx : NULL);
+}
+
+int bt_mesh_vendor_cli_set_unack(struct bt_mesh_vendor_cli *cli,
+			   struct bt_mesh_msg_ctx *ctx,
+			   const struct bt_mesh_vendor_set *set)
+{
+	if (set && set->buf && set->buf->len > BT_MESH_VENDOR_MSG_MAXLEN_SET) {
+		return -EMSGSIZE;
+	}
+
+	LOG_DBG("Sending SET UNACK message, data length %d", set->buf->len);
+
+	BT_MESH_MODEL_BUF_DEFINE(msg, BT_MESH_VENDOR_OP_SET_UNACK, set->buf->len);
+	bt_mesh_model_msg_init(&msg, BT_MESH_VENDOR_OP_SET_UNACK);
+
+	if (set->buf->len > 0) {
+		net_buf_simple_add_mem(&msg, set->buf->data, set->buf->len);
+	}
+
+	/* No acknowledgment is expected, so we use direct send */
+	return bt_mesh_msg_send(cli->model, ctx, &msg);
 }

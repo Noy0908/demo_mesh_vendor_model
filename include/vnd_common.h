@@ -15,7 +15,7 @@
  * @{
  */
 
-/* Company ID - using test company ID */
+/* Company ID - using Nordic company ID */
 #define BT_COMP_ID_VENDOR 0x0059
 
 /* Vendor model IDs */
@@ -23,12 +23,16 @@
 #define BT_MESH_MODEL_ID_VENDOR_CLI 0x1001
 
 /* Vendor model opcodes */
-#define BT_MESH_VENDOR_OP_SET 	  BT_MESH_MODEL_OP_3(0x10, BT_COMP_ID_VENDOR)
-#define BT_MESH_VENDOR_OP_GET 	  BT_MESH_MODEL_OP_3(0x11, BT_COMP_ID_VENDOR)
-#define BT_MESH_VENDOR_OP_STATUS  BT_MESH_MODEL_OP_3(0x12, BT_COMP_ID_VENDOR)
+#define BT_MESH_VENDOR_OP_SET 	      BT_MESH_MODEL_OP_3(0x10, BT_COMP_ID_VENDOR)
+#define BT_MESH_VENDOR_OP_SET_UNACK   BT_MESH_MODEL_OP_3(0x11, BT_COMP_ID_VENDOR)
+#define BT_MESH_VENDOR_OP_GET 	      BT_MESH_MODEL_OP_3(0x12, BT_COMP_ID_VENDOR)
+#define BT_MESH_VENDOR_OP_STATUS      BT_MESH_MODEL_OP_3(0x13, BT_COMP_ID_VENDOR)
 
 /* Maximum message length (excluding 3 byte opcode) is 377 bytes */
 #define BT_MESH_VENDOR_MSG_MAXLEN_SET    (377)
+
+/* Maximum message length (excluding 3 byte opcode) is sizeof(bt_mesh_vendor_get), i.e. 2 bytes */
+#define BT_MESH_VENDOR_MSG_MAXLEN_GET    (2)
 
 /* Status message max length (excluding 3 byte opcode) is 377 bytes */
 #define BT_MESH_VENDOR_MSG_MAXLEN_STATUS (377)
@@ -49,6 +53,16 @@ struct bt_mesh_vendor_status {
  */
 struct bt_mesh_vendor_set {
 	struct net_buf_simple *buf;
+};
+
+/**
+ * @brief Vendor Get Message
+ *
+ * The length parameter specifies how much status data to return.
+ */
+struct bt_mesh_vendor_get {
+	/** Length parameter */
+	uint16_t length;
 };
 
 /** @} */

@@ -37,6 +37,7 @@ static int handle_vendor_set(struct bt_mesh_vendor_srv *srv,
 
 static int handle_vendor_get(struct bt_mesh_vendor_srv *srv,
 				struct bt_mesh_msg_ctx *ctx,
+				const struct bt_mesh_vendor_get *get,
 				struct bt_mesh_vendor_status *rsp);
 
 static const struct bt_mesh_vendor_srv_handlers vendor_srv_handlers = {
@@ -122,15 +123,25 @@ static int handle_vendor_set(struct bt_mesh_vendor_srv *srv,
 /* Server get callback */
 static int handle_vendor_get(struct bt_mesh_vendor_srv *srv,
 				struct bt_mesh_msg_ctx *ctx,
+				const struct bt_mesh_vendor_get *get,
 				struct bt_mesh_vendor_status *rsp)
 {
-	LOG_INF("Received GET request");
+	size_t len = strlen(status_msg);
+
+	/* Check if length parameter is provided and limit response accordingly */
+	if (get) {
+		len = (get->length < len) ? get->length : len;
+
+		LOG_INF("GET with length: %u", get->length);
+	} else {
+		LOG_INF("GET without length, sending full response");
+	}
 
 	/* Populate the response status message */
 	net_buf_simple_reset(rsp->buf);
-	net_buf_simple_add_mem(rsp->buf, status_msg, strlen(status_msg));
+	net_buf_simple_add_mem(rsp->buf, status_msg, len);
 
-	LOG_INF("Sending STATUS response");
+	LOG_INF("Sending STATUS response with length: %zu", len);
 
 	return 0; /* Return success to send response immediately */
 }
@@ -162,11 +173,6 @@ static void handle_vendor_status(struct bt_mesh_vendor_cli *cli,
 
 int vendor_model_send_set(const uint8_t *data, size_t len, struct bt_mesh_vendor_status *rsp)
 {
-	if (len > BT_MESH_VENDOR_MSG_MAXLEN_SET) {
-		LOG_ERR("Message too long (max: %d)", BT_MESH_VENDOR_MSG_MAXLEN_SET);
-		return -EMSGSIZE;
-	}
-
 	LOG_INF("Sending SET message: \"%s\"", (char *)data);
 
 	NET_BUF_SIMPLE_DEFINE(temp_buf, BT_MESH_VENDOR_MSG_MAXLEN_SET);
@@ -179,9 +185,18 @@ int vendor_model_send_set(const uint8_t *data, size_t len, struct bt_mesh_vendor
 	return bt_mesh_vendor_cli_set(&vendor_cli, NULL, &set, rsp);
 }
 
-int vendor_model_send_get(void)
+int vendor_model_send_set_unack(const uint8_t *data, size_t len)
 {
-	return bt_mesh_vendor_cli_get(&vendor_cli, NULL, NULL);
+	LOG_INF("Sending SET UNACK message: \"%s\"", (char *)data);
+
+	NET_BUF_SIMPLE_DEFINE(temp_buf, BT_MESH_VENDOR_MSG_MAXLEN_SET);
+	net_buf_simple_add_mem(&temp_buf, data, len);
+
+	struct bt_mesh_vendor_set set = {
+		.buf = &temp_buf
+	};
+
+	return bt_mesh_vendor_cli_set_unack(&vendor_cli, NULL, &set);
 }
 
 /* Handle button events */
@@ -198,10 +213,29 @@ static void button_handler(uint32_t pressed, uint32_t changed)
 	}
 
 	if (pressed & changed & BIT(DK_BTN2)) {
+		/* Send SET UNACK message with "Hello World" string */
+		err = vendor_model_send_set_unack((const uint8_t *)set_msg, strlen(set_msg));
+		if (err) {
+			LOG_ERR("Failed to send SET UNACK message (err: %d)", err);
+		}
+	}
+	if (pressed & changed & BIT(DK_BTN3)) {
 		/* Send GET message to request status */
-		err = vendor_model_send_get();
+		err = bt_mesh_vendor_cli_get(&vendor_cli, NULL, NULL, NULL);
 		if (err) {
 			LOG_ERR("Failed to send GET message (err: %d)", err);
+		}
+	}
+	if (pressed & changed & BIT(DK_BTN4)) {
+		/* Send GET message with length parameter set to 1 */
+		struct bt_mesh_vendor_get get = {
+			.length = 1
+		};
+
+		LOG_INF("Sending GET message with length parameter set to 1");
+		err = bt_mesh_vendor_cli_get(&vendor_cli, NULL, &get, NULL);
+		if (err) {
+			LOG_ERR("Failed to send GET message with length=1 (err: %d)", err);
 		}
 	}
 }

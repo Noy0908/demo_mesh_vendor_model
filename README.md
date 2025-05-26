@@ -16,23 +16,49 @@ The vendor model is defined with:
 
 ### Message Types
 
-The sample implements three message types:
+The sample implements four message types:
 
 1. **Vendor_SET (Opcode: 0x10 + Company ID)**
    - Sent from client to server
-   - Carries arbitrary length data payload (up to 377 bytes)
    - STATUS response is expected to be sent by the application
+   - Acknowledged message type
 
-2. **Vendor_GET (Opcode: 0x11 + Company ID)**
+   | Field Name | Size (octets) | Description                                 |
+   |------------|--------------|----------------------------------------------|
+   | Opcode     | 3            | 0x10 + Company ID (Little Endian)            |
+   | Data       | 0–377        | Arbitrary data payload                       |
+
+2. **Vendor_Set_Unack (Opcode: 0x11 + Company ID)**
    - Sent from client to server
-   - No payload
+   - No STATUS response is sent by the application
+   - Unacknowledged message type (send and forget)
+
+   | Field Name | Size (octets) | Description                                 |
+   |------------|--------------|----------------------------------------------|
+   | Opcode     | 3            | 0x11 + Company ID (Little Endian)            |
+   | Data       | 0–377        | Arbitrary data payload                       |
+
+3. **Vendor_GET (Opcode: 0x12 + Company ID)**
+   - Sent from client to server
+   - Supports an optional `length` parameter
+   - If the `length` parameter is provided, the server will limit the STATUS response payload to the specified number of bytes
+   - If not provided, the server sends the full response
    - Requires acknowledgment with a Vendor_STATUS response
 
-3. **Vendor_STATUS (Opcode: 0x12 + Company ID)**
+   | Field Name | Size (octets) | Description                                 |
+   |------------|--------------|----------------------------------------------|
+   | Opcode     | 3            | 0x12 + Company ID (Little Endian)            |
+   | Length     | 2 (optional) | Optional. Number of bytes requested in reply.|
+
+4. **Vendor_STATUS (Opcode: 0x13 + Company ID)**
    - Sent from server to client
-   - Contains response data (up to 377 bytes)
    - Sent in response to GET or SET messages
    - Automatically sent by the server when the handler returns success (0)
+
+   | Field Name | Size (octets) | Description                                 |
+   |------------|--------------|----------------------------------------------|
+   | Opcode     | 3            | 0x13 + Company ID (Little Endian)            |
+   | Data       | 0–377        | Response data payload                        |
 
 ## Requirements
 
@@ -43,7 +69,7 @@ The sample implements three message types:
 
 ### Software
 
-* nRF Connect SDK (NCS) v2.4.0 or later
+* nRF Connect SDK (NCS) v3.0.0 or later
 * nRF Mesh mobile app for [Android](https://play.google.com/store/apps/details?id=no.nordicsemi.android.nrfmeshprovisioner) or [iOS](https://apps.apple.com/us/app/nrf-mesh/id1380726771)
 
 ## Building and Running
@@ -68,21 +94,17 @@ The sample implements three message types:
    * Scan for unprovisioned devices and provision them one by one
    * Add them to the same network
    * Configure publish/subscribe addresses to establish communication between the devices
-3. Press Button 1 on one of the devices to send a "Hello World" message using Vendor_SET message
-4. Press Button 2 on one of the devices to send a Vendor_GET request message
-5. Observe the message exchange in the console logs
+3. Press Button 1 on one of the devices to send a "Hello World" message using Vendor_Set message (acknowledged)
+4. Press Button 2 on one of the devices to send a "Hello World" message using Vendor_Set_Unack message (unacknowledged)
+5. Press Button 3 on one of the devices to send a Vendor_Get request message (no parameters, full response)
+6. Press Button 4 on one of the devices to send a Vendor_Get request message with the optional `length` parameter set to 1 (response will be truncated to 1 byte)
+7. Observe the message exchange in the console logs
 
 ### Expected Output
 
+#### For Acknowledged SET Message (Button 1)
+
 On the device that receives the SET message, you should see:
-
-```
-[00:00:06.156,066] <dbg> vnd_srv: handle_set: Received SET message, data length 301
-[00:00:06.156,250] <inf> model_handler: Received SET message: "Hello World- 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF"
-[00:00:06.156,311] <dbg> vnd_srv: bt_mesh_vendor_srv_status_send: Sending STATUS message, data length 301
-```
-
-On the device that sends the SET message, you should see:
 
 ```
 [00:00:05.774,597] <inf> model_handler: Sending SET message: "Hello World- 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF"
@@ -94,7 +116,6 @@ On the device that sends the SET message, you should see:
 ## Implementation Details
 
 The sample consists of the following components:
-
 1. **Vendor Model Definitions**
    * `include/vnd_common.h` - Common definitions shared by client and server
    * `include/vnd_srv.h` - Vendor server model API and context definitions
@@ -116,7 +137,7 @@ The vendor server model supports asynchronous responses:
    * Return 0 to send the response immediately
    * Return non-zero to delay the response (to be sent later)
 
-2. When delaying a response, the application can call `bt_mesh_vendor_srv_status_send()` later when the response is ready.
+2. When delaying a response, the application can call `bt_mesh_vendor_srv_status_send()` later when the response is ready. Make sure to save the `ctx` so that response can be sent to the correct destination.
 
 3. This allows for scenarios where response data isn't immediately available, such as:
    * Hardware operations that take time to complete

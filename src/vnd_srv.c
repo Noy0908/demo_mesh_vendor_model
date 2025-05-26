@@ -41,22 +41,58 @@ static int handle_set(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx 
 	return 0;
 }
 
+static int handle_set_unack(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx *ctx,
+		     struct net_buf_simple *buf)
+{
+	if (buf->len > BT_MESH_VENDOR_MSG_MAXLEN_STATUS) {
+		return -EMSGSIZE;
+	}
+
+	struct bt_mesh_vendor_srv *srv = model->rt->user_data;
+	struct bt_mesh_vendor_set set = {
+		.buf = buf
+	};
+
+	LOG_DBG("Received SET UNACK message, data length %d", buf->len);
+
+	if (srv->handlers && srv->handlers->set) {
+		net_buf_simple_reset(&srv->status_msg);
+		struct bt_mesh_vendor_status rsp = {
+			.buf = &srv->status_msg
+		};
+
+		/* Call the same handler but don't send any response */
+		srv->handlers->set(srv, ctx, &set, &rsp);
+	}
+
+	return 0;
+}
+
 static int handle_get(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx *ctx,
 		     struct net_buf_simple *buf)
 {
-	LOG_DBG("Received GET message");
 	struct bt_mesh_vendor_srv *srv = model->rt->user_data;
+	struct bt_mesh_vendor_get get = { 0 };
+	bool has_len = (buf->len == BT_MESH_VENDOR_MSG_MAXLEN_GET);
+
+	/* Check if the length parameter is included in the message */
+	if (has_len) {
+		get.length = net_buf_simple_pull_le16(buf);
+		LOG_DBG("GET message with length parameter: %u", get.length);
+	} else {
+		LOG_DBG("GET message without length parameter");
+	}
 
 	net_buf_simple_reset(&srv->status_msg);
 	struct bt_mesh_vendor_status rsp = {
 		.buf = &srv->status_msg
 	};
 
-	int err = srv->handlers->get(srv, ctx, &rsp);
+	int err = srv->handlers->get(srv, ctx, has_len ? &get : NULL, &rsp);
 
 	/* Send response only if handler returned success */
 	if (err == 0) {
-		bt_mesh_vendor_srv_status_send(srv, ctx, &rsp);
+		return bt_mesh_vendor_srv_status_send(srv, ctx, &rsp);
 	}
 
 	return 0;
@@ -64,6 +100,7 @@ static int handle_get(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx 
 
 const struct bt_mesh_model_op _bt_mesh_vendor_srv_op[] = {
 	{ BT_MESH_VENDOR_OP_SET, 0, handle_set },
+	{ BT_MESH_VENDOR_OP_SET_UNACK, 0, handle_set_unack },
 	{ BT_MESH_VENDOR_OP_GET, 0, handle_get },
 	BT_MESH_MODEL_OP_END,
 };
@@ -105,10 +142,6 @@ int bt_mesh_vendor_srv_status_send(struct bt_mesh_vendor_srv *srv,
                                    struct bt_mesh_msg_ctx *ctx,
                                    struct bt_mesh_vendor_status *rsp)
 {
-	if (!srv) {
-		return -EINVAL;
-	}
-
 	BT_MESH_MODEL_BUF_DEFINE(msg, BT_MESH_VENDOR_OP_STATUS, srv->status_msg.len);
 	bt_mesh_model_msg_init(&msg, BT_MESH_VENDOR_OP_STATUS);
 
