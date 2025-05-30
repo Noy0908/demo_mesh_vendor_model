@@ -11,13 +11,17 @@ project(NONE)
 zephyr_library_include_directories(${ZEPHYR_BASE}/subsys/bluetooth/mesh)
 zephyr_library_include_directories(${ZEPHYR_NRF_MODULE_DIR}/subsys/bluetooth/mesh)
 
-# Include source files
-target_sources(app PRIVATE
-  src/main.c
-  src/model_handler.c
-  src/vnd_cli.c
-  src/vnd_srv.c
-)
+# # Include source files
+# target_sources(app PRIVATE
+#   src/main.c
+#   src/model_handler.c
+#   src/vnd_cli.c
+#   src/vnd_srv.c
+# )
+
+FILE(GLOB app_sources src/*.c)
+target_sources(app PRIVATE ${app_sources})
+
 
 # Include directories
 target_include_directories(app PRIVATE include)
