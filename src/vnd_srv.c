@@ -23,7 +23,7 @@ static int handle_set(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx 
 		.buf = buf
 	};
 
-	LOG_DBG("Received SET message, data length %d", buf->len);
+	LOG_DBG("Received SET message from 0x%04X, data length %d", ctx->addr, buf->len);
 
 	if (srv->handlers && srv->handlers->set) {
 		net_buf_simple_reset(&srv->status_msg);

@@ -20,7 +20,7 @@ static int handle_status(const struct bt_mesh_model *model, \
 	struct bt_mesh_vendor_status status;
 	struct bt_mesh_vendor_status *rsp;
 
-	LOG_DBG("Received STATUS message, data length %d", buf->len);
+	LOG_DBG("Received STATUS message from 0x%04X,, data length %d", ctx->addr, buf->len);
 
 	status.buf = buf;
 

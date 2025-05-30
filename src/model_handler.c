@@ -229,10 +229,10 @@ static void button_handler(uint32_t pressed, uint32_t changed)
 	if (pressed & changed & BIT(DK_BTN4)) {
 		/* Send GET message with length parameter set to 1 */
 		struct bt_mesh_vendor_get get = {
-			.length = 1
+			.length = 11
 		};
 
-		LOG_INF("Sending GET message with length parameter set to 1");
+		LOG_INF("Sending GET message with length parameter set to 11");
 		err = bt_mesh_vendor_cli_get(&vendor_cli, NULL, &get, NULL);
 		if (err) {
 			LOG_ERR("Failed to send GET message with length=1 (err: %d)", err);
