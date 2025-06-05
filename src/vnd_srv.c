@@ -83,25 +83,74 @@ static int handle_get(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx 
 		LOG_DBG("GET message without length parameter");
 	}
 
+	bt_mesh_vendor_get_type_t get_type = net_buf_simple_pull_u8(buf); // Pull the type byte, if present
+
 	net_buf_simple_reset(&srv->status_msg);
 	struct bt_mesh_vendor_status rsp = {
 		.buf = &srv->status_msg
 	};
 
 	int err = srv->handlers->get(srv, ctx, has_len ? &get : NULL, &rsp);
-
 	/* Send response only if handler returned success */
 	if (err == 0) {
-		return bt_mesh_vendor_srv_status_send(srv, ctx, &rsp);
+		switch (get_type) {
+		case BT_MESH_VENDOR_GET_TYPE_STATUS:
+			LOG_DBG("GET request for status");
+			return bt_mesh_vendor_srv_status_send(srv, ctx, &rsp);
+			break;
+		case BT_MESH_VENDOR_GET_TYPE_NODE_DETAILS:
+			LOG_DBG("GET request for node details");
+			return bt_mesh_vendor_srv_node_details_send(srv, ctx, &rsp);
+			break;
+		case BT_MESH_VENDOR_GET_TYPE_METER_DATA:
+			LOG_DBG("GET request for meter data");
+			return bt_mesh_vendor_srv_meter_data_send(srv, ctx, &rsp);
+			break;
+		default:
+			LOG_WRN("Unknown GET request type: %d", get_type);
+			return -EINVAL; /* Invalid request type */
+		}
 	}
 
 	return 0;
 }
 
+// static int handle_get_node_details(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx *ctx,
+// 		     struct net_buf_simple *buf)
+// {
+// 	struct bt_mesh_vendor_srv *srv = model->rt->user_data;
+// 	struct bt_mesh_vendor_get get = { 0 };
+// 	bool has_len = (buf->len == BT_MESH_VENDOR_MSG_MAXLEN_GET);
+
+// 	/* Check if the length parameter is included in the message */
+// 	if (has_len) {
+// 		get.length = net_buf_simple_pull_le16(buf);
+// 		LOG_DBG("GET message with length parameter: %u", get.length);
+// 	} else {
+// 		LOG_DBG("GET message without length parameter");
+// 	}
+
+// 	net_buf_simple_reset(&srv->status_msg);
+// 	struct bt_mesh_vendor_status rsp = {
+// 		.buf = &srv->status_msg
+// 	};
+
+// 	int err = srv->handlers->get(srv, ctx, has_len ? &get : NULL, &rsp);
+
+// 	/* Send response only if handler returned success */
+// 	if (err == 0) {
+// 		return bt_mesh_vendor_srv_status_send(srv, ctx, &rsp);
+// 	}
+
+// 	return 0;
+// }
+
 const struct bt_mesh_model_op _bt_mesh_vendor_srv_op[] = {
 	{ BT_MESH_VENDOR_OP_SET, 0, handle_set },
 	{ BT_MESH_VENDOR_OP_SET_UNACK, 0, handle_set_unack },
 	{ BT_MESH_VENDOR_OP_GET, 0, handle_get },
+	{ BT_MESH_VENDOR_OP_GET_NODE_DETAILS, 0, handle_get },
+	{ BT_MESH_VENDOR_OP_GET_METER_DATA, 0, handle_get },
 	BT_MESH_MODEL_OP_END,
 };
 
@@ -157,3 +206,45 @@ int bt_mesh_vendor_srv_status_send(struct bt_mesh_vendor_srv *srv,
 		return bt_mesh_model_publish(srv->model);
 	}
 }
+
+int bt_mesh_vendor_srv_node_details_send(struct bt_mesh_vendor_srv *srv,
+                                   struct bt_mesh_msg_ctx *ctx,
+                                   struct bt_mesh_vendor_status *rsp)
+{
+	BT_MESH_MODEL_BUF_DEFINE(msg, BT_MESH_VENDOR_OP_STATUS_NODE_DETAILS, srv->status_msg.len);
+	bt_mesh_model_msg_init(&msg, BT_MESH_VENDOR_OP_STATUS_NODE_DETAILS);
+
+	if (rsp->buf->len > 0) {
+		net_buf_simple_add_mem(&msg, rsp->buf->data, rsp->buf->len);
+	}
+
+	LOG_DBG("Sending NODE DETAILS message, data length %d", rsp->buf->len);
+
+	if (ctx) {
+		return bt_mesh_model_send(srv->model, ctx, &msg, NULL, NULL);
+	} else {
+		return bt_mesh_model_publish(srv->model);
+	}
+}
+
+
+int bt_mesh_vendor_srv_meter_data_send(struct bt_mesh_vendor_srv *srv,
+                                   struct bt_mesh_msg_ctx *ctx,
+                                   struct bt_mesh_vendor_status *rsp)
+{
+	BT_MESH_MODEL_BUF_DEFINE(msg, BT_MESH_VENDOR_OP_STATUS_METER_DATA, srv->status_msg.len);
+	bt_mesh_model_msg_init(&msg, BT_MESH_VENDOR_OP_STATUS_METER_DATA);
+
+	if (rsp->buf->len > 0) {
+		net_buf_simple_add_mem(&msg, rsp->buf->data, rsp->buf->len);
+	}
+
+	LOG_DBG("Sending METER DATA message, data length %d", rsp->buf->len);
+
+	if (ctx) {
+		return bt_mesh_model_send(srv->model, ctx, &msg, NULL, NULL);
+	} else {
+		return bt_mesh_model_publish(srv->model);
+	}
+}
+

@@ -2,10 +2,14 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "path_table.h"
+#include "node_app.h"
 
 
 static node_info_t node_info_table[NODE_INFO_TABLE_SIZE];
+
+
+
+
 
 
 void node_path_table_init(void) {
@@ -13,7 +17,6 @@ void node_path_table_init(void) {
         node_info_table[i].serial_number = 0;
     }
 }
-
 
 
 void update_node_path_table(uint64_t serial_number, uint16_t src_address) {
@@ -68,4 +71,14 @@ void purge_obsolete_node_info(void) {
             node_info_table[i].timestamp = 0;
         }
     }
+}
+
+
+uint16_t get_remote_node_addr(uint64_t serial_number) {
+    for (int i = 0; i < NODE_INFO_TABLE_SIZE; ++i) {
+        if (node_info_table[i].serial_number == serial_number) {
+            return node_info_table[i].mesh_address;
+        }
+    }
+    return 0; // Not found
 }

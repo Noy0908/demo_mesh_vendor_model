@@ -124,6 +124,16 @@ enum uart_cmd_type {
 	 */
     HOST_CONTROL_ADVERTISE_CMD,
 	/**
+	 * @brief host send comamnd to get mesh node .
+	 * response with SUCCESS or ERROR.
+	 */
+    HOST_GET_NODE_DETAILS_CMD,
+	/**
+	 * @brief host send comamnd to get meter .
+	 * response with SUCCESS or ERROR.
+	 */
+    HOST_GET_METER_DATA_CMD,
+	/**
 	 * @brief slave send URC to host .
 	 * response with SUCCESS or ERROR.
 	 */
@@ -157,8 +167,6 @@ struct uart_cmd_rsp_t {
 
 // extern struct k_fifo fifo_uart_tx_data;
 extern struct k_fifo fifo_uart_rx_data;
-
-extern struct k_msgq tx_send_queue;
 
 extern bool transparent_flag;
 

@@ -23,10 +23,14 @@
 #define BT_MESH_MODEL_ID_VENDOR_CLI 0x1001
 
 /* Vendor model opcodes */
-#define BT_MESH_VENDOR_OP_SET 	      BT_MESH_MODEL_OP_3(0x10, BT_COMP_ID_VENDOR)
-#define BT_MESH_VENDOR_OP_SET_UNACK   BT_MESH_MODEL_OP_3(0x11, BT_COMP_ID_VENDOR)
-#define BT_MESH_VENDOR_OP_GET 	      BT_MESH_MODEL_OP_3(0x12, BT_COMP_ID_VENDOR)
-#define BT_MESH_VENDOR_OP_STATUS      BT_MESH_MODEL_OP_3(0x13, BT_COMP_ID_VENDOR)
+#define BT_MESH_VENDOR_OP_SET 	      				BT_MESH_MODEL_OP_3(0x10, BT_COMP_ID_VENDOR)
+#define BT_MESH_VENDOR_OP_SET_UNACK   				BT_MESH_MODEL_OP_3(0x11, BT_COMP_ID_VENDOR)
+#define BT_MESH_VENDOR_OP_GET 	      				BT_MESH_MODEL_OP_3(0x12, BT_COMP_ID_VENDOR)
+#define BT_MESH_VENDOR_OP_STATUS      				BT_MESH_MODEL_OP_3(0x13, BT_COMP_ID_VENDOR)
+#define BT_MESH_VENDOR_OP_GET_NODE_DETAILS 	      	BT_MESH_MODEL_OP_3(0x14, BT_COMP_ID_VENDOR)
+#define BT_MESH_VENDOR_OP_STATUS_NODE_DETAILS 		BT_MESH_MODEL_OP_3(0x15, BT_COMP_ID_VENDOR)
+#define BT_MESH_VENDOR_OP_GET_METER_DATA 	      	BT_MESH_MODEL_OP_3(0x16, BT_COMP_ID_VENDOR)
+#define BT_MESH_VENDOR_OP_STATUS_METER_DATA 		BT_MESH_MODEL_OP_3(0x17, BT_COMP_ID_VENDOR)
 
 /* Maximum message length (excluding 3 byte opcode) is 377 bytes */
 #define BT_MESH_VENDOR_MSG_MAXLEN_SET    (377)
@@ -56,6 +60,17 @@ struct bt_mesh_vendor_set {
 };
 
 /**
+ * @brief Vendor Get Message types
+ *
+ * The type parameter specifies which status data to return.
+ */
+typedef enum bt_mesh_vendor_get_type {
+    BT_MESH_VENDOR_GET_TYPE_STATUS = 0,
+    BT_MESH_VENDOR_GET_TYPE_NODE_DETAILS,
+    BT_MESH_VENDOR_GET_TYPE_METER_DATA,
+} bt_mesh_vendor_get_type_t;
+
+/**
  * @brief Vendor Get Message
  *
  * The length parameter specifies how much status data to return.
@@ -63,6 +78,7 @@ struct bt_mesh_vendor_set {
 struct bt_mesh_vendor_get {
 	/** Length parameter */
 	uint16_t length;
+	bt_mesh_vendor_get_type_t type;
 };
 
 /** @} */

@@ -14,6 +14,7 @@
 
 #include "../include/vnd_srv.h"
 #include "../include/vnd_cli.h"
+#include "../include/vnd_common.h"
 #include "model_handler.h"
 
 LOG_MODULE_REGISTER(model_handler, CONFIG_BT_MESH_MODEL_LOG_LEVEL);
@@ -138,8 +139,29 @@ static int handle_vendor_get(struct bt_mesh_vendor_srv *srv,
 	}
 
 	/* Populate the response status message */
-	net_buf_simple_reset(rsp->buf);
-	net_buf_simple_add_mem(rsp->buf, status_msg, len);
+	switch(get->type) {
+	case BT_MESH_VENDOR_GET_TYPE_STATUS:
+		net_buf_simple_reset(rsp->buf);
+		net_buf_simple_add_u8(rsp->buf, BT_MESH_VENDOR_GET_TYPE_STATUS);
+		net_buf_simple_add_mem(rsp->buf, status_msg, len);
+		LOG_INF("GET request for status");
+		break;
+	case BT_MESH_VENDOR_GET_TYPE_NODE_DETAILS:	
+		net_buf_simple_reset(rsp->buf);
+		net_buf_simple_add_u8(rsp->buf, BT_MESH_VENDOR_GET_TYPE_NODE_DETAILS);
+		net_buf_simple_add_mem(rsp->buf, status_msg, len);
+		LOG_INF("GET request for node details");
+		break;
+	case BT_MESH_VENDOR_GET_TYPE_METER_DATA:
+		net_buf_simple_reset(rsp->buf);
+		net_buf_simple_add_u8(rsp->buf, BT_MESH_VENDOR_GET_TYPE_NODE_DETAILS);
+		net_buf_simple_add_mem(rsp->buf, status_msg, len);
+		LOG_INF("GET request for meter data");
+		break;
+	default:
+		LOG_WRN("Unknown GET request type: %d", get->type);
+		return -EINVAL; /* Invalid request type */
+	}
 
 	LOG_INF("Sending STATUS response with length: %zu", len);
 
@@ -162,12 +184,14 @@ static void handle_vendor_status(struct bt_mesh_vendor_cli *cli,
 		len = BT_MESH_VENDOR_MSG_MAXLEN_STATUS;
 	}
 
+	bt_mesh_vendor_get_type_t get_type = net_buf_simple_pull_u8(status->buf); // Pull the type byte, if present
+
 	if (len > 0) {
 		memcpy(data, status->buf->data, len);
 		data[len] = '\0'; /* Null-terminate the string */
 	}
 
-	LOG_INF("Received STATUS response: \"%s\"", data);
+	LOG_INF("Received STATUS[%d] response: \"%s\"", get_type, data);
 }
 
 
@@ -199,6 +223,27 @@ int vendor_model_send_set_unack(const uint8_t *data, size_t len)
 	return bt_mesh_vendor_cli_set_unack(&vendor_cli, NULL, &set);
 }
 
+
+int vendor_model_send_get(bt_mesh_vendor_get_type_t type, uint16_t addr, uint16_t len)
+{
+	// LOG_INF("Sending GET message with length: %u", len);
+	/* Send GET message with length parameter set to 1 */
+	struct bt_mesh_msg_ctx ctx = {
+		.addr = addr,
+		.app_idx = vendor_cli.model->keys[0],
+		.send_ttl = BT_MESH_TTL_DEFAULT,
+		.send_rel = true,
+    };
+
+	struct bt_mesh_vendor_get get = {
+		.length = len,
+		.type = type,
+	};
+
+	return bt_mesh_vendor_cli_get(&vendor_cli, &ctx, &get, NULL);
+}
+
+
 /* Handle button events */
 static void button_handler(uint32_t pressed, uint32_t changed)
 {
@@ -229,7 +274,8 @@ static void button_handler(uint32_t pressed, uint32_t changed)
 	if (pressed & changed & BIT(DK_BTN4)) {
 		/* Send GET message with length parameter set to 1 */
 		struct bt_mesh_vendor_get get = {
-			.length = 11
+			.length = 11,
+			.type = BT_MESH_VENDOR_GET_TYPE_STATUS,
 		};
 
 		LOG_INF("Sending GET message with length parameter set to 11");

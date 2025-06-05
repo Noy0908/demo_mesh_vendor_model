@@ -10,9 +10,11 @@
 #include <zephyr/sys/reboot.h>
 #include <zephyr/sys/reboot.h>
 
+#include "model_handler.h"
 #include "uart_app.h"
 // #include "ble_app.h"
 // #include "nus_setting_app.h"
+#include "node_app.h"
 #include "error_code.h"
 
 LOG_MODULE_DECLARE(peripheral_uart);
@@ -20,13 +22,13 @@ LOG_MODULE_DECLARE(peripheral_uart);
 #define BT_MAC_ADDR_SIZE 	6
 #define TX_QUEUE_COUNT		20
 
+
+
 static const struct device *uart = DEVICE_DT_GET(DT_CHOSEN(nordic_nus_uart));
 static struct k_work_delayable uart_work;
 
 K_FIFO_DEFINE(fifo_uart_tx_data);
 K_FIFO_DEFINE(fifo_uart_rx_data);
-
-// K_MSGQ_DEFINE(tx_send_queue, sizeof(nus_data_t), TX_QUEUE_COUNT, 4);
 
 #ifdef CONFIG_UART_ASYNC_ADAPTER
 UART_ASYNC_ADAPTER_INST_DEFINE(async_adapter);
@@ -596,6 +598,89 @@ static void control_ble_advertise(struct uart_cmd_rsp_t * uart_data, struct uart
 
 #endif
 
+static void get_mesh_node_details(struct uart_cmd_rsp_t * uart_data, struct uart_cmd_rsp_t *response)
+{	
+	int16_t err = 0;
+	uint64_t device_sn = 0;
+	// memcpy(&device_sn, uart_data->data, DEVICE_SN_SIZE);
+	for (int i = 0; i < DEVICE_SN_SIZE; i++) {
+        device_sn <<= 8;
+        device_sn |= uart_data->data[i];
+    }
+	
+	LOG_INF("Device SN: 0x%012llX\n", (long long unsigned int) device_sn);	
+	uint16_t addr = get_remote_node_addr(device_sn);
+	if(0 == addr)
+	{
+		LOG_ERR("Failed to get remote node address for SN: 0x%012llX", device_sn);
+		err = -ENOENT;
+	}
+	else
+	{
+		LOG_INF("Device Address: 0x%04X\n", addr);
+
+		err = vendor_model_send_get(BT_MESH_VENDOR_GET_TYPE_NODE_DETAILS, addr, sizeof(node_info_t));
+		if (err) {
+			LOG_ERR("Failed to send GET message with length=1 (err: %d)", err);
+		}
+	}
+	
+	if(err)
+	{
+		response->cmd = HOST_COMMAND_ERROR_CODE_CMD;
+	}
+	else
+	{
+		response->cmd = HOST_GET_NODE_DETAILS_CMD;
+	}
+
+	response->data[0] = (err >> 8) & 0xFF;
+	response->data[1] = err & 0xFF;
+	response->len = sizeof(err);
+}
+
+
+static void get_meter_data(struct uart_cmd_rsp_t * uart_data, struct uart_cmd_rsp_t *response)
+{	
+	int16_t err = 0;
+	uint64_t device_sn = 0;
+	// memcpy(&device_sn, uart_data->data, DEVICE_SN_SIZE);
+	for (int i = 0; i < DEVICE_SN_SIZE; i++) {
+        device_sn <<= 8;
+        device_sn |= uart_data->data[i];
+    }
+	
+	LOG_INF("Device SN: 0x%012llX\n", (long long unsigned int) device_sn);	
+	uint16_t addr = get_remote_node_addr(device_sn);
+	if(0 == addr)
+	{
+		LOG_ERR("Failed to get remote node address for SN: 0x%012llX", device_sn);
+		err = -ENOENT;
+	}
+	else
+	{
+		LOG_INF("Device Address: 0x%04X\n", addr);
+
+		err = vendor_model_send_get(BT_MESH_VENDOR_GET_TYPE_METER_DATA, addr, sizeof(node_info_t));
+		if (err) {
+			LOG_ERR("Failed to send GET message with length=1 (err: %d)", err);
+		}
+	}
+	
+	if(err)
+	{
+		response->cmd = HOST_COMMAND_ERROR_CODE_CMD;
+	}
+	else
+	{
+		response->cmd = HOST_GET_METER_DATA_CMD;
+	}
+
+	response->data[0] = (err >> 8) & 0xFF;
+	response->data[1] = err & 0xFF;
+	response->len = sizeof(err);
+}
+
 
 static void uart_send_response(struct uart_cmd_rsp_t response)
 {
@@ -615,16 +700,16 @@ static void uart_send_response(struct uart_cmd_rsp_t response)
 	uart_send_data(response_payload);
 }
 
-static void reset_device(void)
-{
-	struct uart_cmd_rsp_t response = {0};
-	response.cmd =	HOST_RESET_DEVICE_CMD;
-	response.len = 1;
-	response.data[0] = 0;
-	uart_send_response(response);
-	k_sleep(K_MSEC(100));
-	sys_reboot(SYS_REBOOT_COLD);
-}
+// static void reset_device(void)
+// {
+// 	struct uart_cmd_rsp_t response = {0};
+// 	response.cmd =	HOST_RESET_DEVICE_CMD;
+// 	response.len = 1;
+// 	response.data[0] = 0;
+// 	uart_send_response(response);
+// 	k_sleep(K_MSEC(100));
+// 	sys_reboot(SYS_REBOOT_COLD);
+// }
 
 
 void uart_send_URC(uint8_t data, uint16_t len)
@@ -654,43 +739,10 @@ uint8_t get_device_status(void) {
 }
 
 
-// void on_packet_nus_data(uint8_t *buffer, uint16_t length)
-// {
-// 	int err;
-// 	nus_data_t send_buffer = {0};
-	
-// 	send_buffer.data = k_calloc(length+1, sizeof(uint8_t));
-// 	if (send_buffer.data != NULL) 
-// 	{
-// 		memcpy(send_buffer.data, buffer, length);		
-// 		send_buffer.length = length;
-
-// 		if(0 == k_msgq_num_free_get(&tx_send_queue))
-// 		{
-// 			/* message queue is full ,we have to delete the oldest data to reserve room for the new data */
-// 			nus_data_t data_buffer = {0};
-// 			k_msgq_get(&tx_send_queue, &data_buffer, K_NO_WAIT);
-// 			LOG_DBG("Droped data:[%d]:%s\n",data_buffer.length, data_buffer.data);
-// 			k_free(data_buffer.data);
-// 		}
-
-// 		/** send the uart data to tcp server*/
-// 		err = k_msgq_put(&tx_send_queue, &send_buffer, K_NO_WAIT);
-// 		if (err) {
-// 			LOG_ERR("Message sent error: %d", err);
-// 			k_free(send_buffer.data);
-// 		}
-// 	} 
-// 	else 
-// 	{
-// 		LOG_ERR("Memory not allocated!\n");
-// 	}
-// }
-
 
 void handle_uart_data(struct uart_data_t * uart_data)
 {
-	// struct uart_cmd_rsp_t response = {0};
+	struct uart_cmd_rsp_t response = {0};
 
     struct uart_cmd_rsp_t command = {0};
 	command.cmd = uart_data->data[0];
@@ -703,9 +755,10 @@ void handle_uart_data(struct uart_data_t * uart_data)
 	memcpy(command.data, &uart_data->data[3], command.len);
 
 	LOG_INF("Received [%d] data from host MCU, cmd =  %0X", command.len,command.cmd);
-#if 0
+
     switch (command.cmd)
     {
+#if 0
     case HOST_UART_PING_CMD:
 		response.cmd = HOST_UART_PING_CMD;
 		response.len = sizeof(device_state);
@@ -771,6 +824,15 @@ void handle_uart_data(struct uart_data_t * uart_data)
 		control_ble_advertise(&command, &response);
 		LOG_INF("Received command HOST_CONTROL_ADVERTISE_CMD");
 		break;
+#endif
+	case HOST_GET_NODE_DETAILS_CMD:
+		get_mesh_node_details(&command, &response);
+		LOG_INF("Received command HOST_GET_NODE_DETAILS_CMD");
+		break;
+	case HOST_GET_METER_DATA_CMD:
+		get_meter_data(&command, &response);
+		LOG_INF("Received command HOST_GET_METER_DATA_CMD");
+		break;
     default:
 		response.cmd = HOST_COMMAND_ERROR_CODE_CMD;
 		response.len = 2;
@@ -782,7 +844,7 @@ void handle_uart_data(struct uart_data_t * uart_data)
     }   
 
 	uart_send_response(response);		//send response to host mcu
-#endif
+
 }
 
 

@@ -30,9 +30,12 @@ int vendor_model_send_set(const uint8_t *data, size_t len, struct bt_mesh_vendor
 /**
  * @brief Send a Vendor Get message
  *
+ * @param type     Vendor Get Message types
+ * @param addr     Vdestination node address
+ * @param len      Length of get message
  * @return 0 on success, negative error code otherwise
  */
-int vendor_model_send_get(void);
+int vendor_model_send_get(bt_mesh_vendor_get_type_t type, uint16_t addr, uint16_t len);
 
 /**
  * @brief Send a Vendor Set Unacknowledged message
