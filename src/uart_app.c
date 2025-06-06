@@ -13,7 +13,7 @@
 #include "model_handler.h"
 #include "uart_app.h"
 // #include "ble_app.h"
-// #include "nus_setting_app.h"
+#include "nus_setting_app.h"
 #include "node_app.h"
 #include "error_code.h"
 
@@ -598,6 +598,39 @@ static void control_ble_advertise(struct uart_cmd_rsp_t * uart_data, struct uart
 
 #endif
 
+static void uart_set_device_sn(struct uart_cmd_rsp_t * uart_data, struct uart_cmd_rsp_t *response)
+{
+	if(uart_data->len)		//write command
+	{
+		int16_t err = save_device_sn(uart_data->data, uart_data->len);
+		if(err)
+		{
+			response->cmd = HOST_COMMAND_ERROR_CODE_CMD;
+		}
+		else
+		{
+			response->cmd = HOST_SET_DEVICE_SN_CMD;
+			node_details.serial_number = get_device_sn(); // Update the node details with the new serial number
+		}
+		// memcpy(response->data, &err, sizeof(err));
+		response->data[0] = (err >> 8) & 0xFF;
+		response->data[1] = err & 0xFF;
+		response->len = sizeof(err);
+	}
+	else			//read command
+	{
+		response->cmd = HOST_SET_DEVICE_SN_CMD;
+		response->len = DEVICE_SN_SIZE;	
+		uint64_t serial_number = get_device_sn();
+		response->data[0] = (serial_number >> 40) & 0xFF;
+		response->data[1] = (serial_number >> 32) & 0xFF;
+		response->data[2] = (serial_number >> 24) & 0xFF;
+		response->data[3] = (serial_number >> 16) & 0xFF;
+		response->data[4] = (serial_number >> 8) & 0xFF;
+		response->data[5] = serial_number & 0xFF;
+	}
+}
+
 static void get_mesh_node_details(struct uart_cmd_rsp_t * uart_data, struct uart_cmd_rsp_t *response)
 {	
 	int16_t err = 0;
@@ -825,6 +858,10 @@ void handle_uart_data(struct uart_data_t * uart_data)
 		LOG_INF("Received command HOST_CONTROL_ADVERTISE_CMD");
 		break;
 #endif
+	case HOST_SET_DEVICE_SN_CMD:
+		uart_set_device_sn(&command, &response);
+		LOG_INF("Received command HOST_SET_DEVICE_SN_CMD");
+		break;
 	case HOST_GET_NODE_DETAILS_CMD:
 		get_mesh_node_details(&command, &response);
 		LOG_INF("Received command HOST_GET_NODE_DETAILS_CMD");

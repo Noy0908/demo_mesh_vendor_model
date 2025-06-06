@@ -46,4 +46,13 @@ int vendor_model_send_get(bt_mesh_vendor_get_type_t type, uint16_t addr, uint16_
  */
 int vendor_model_send_set_unack(const uint8_t *data, size_t len);
 
+/**
+ * @brief Server publish the node details message to all nodes
+ *
+ * @param data     Data to send
+ * @param len      Length of data to be sent
+ * @return 0 on success, negative error code otherwise
+ */
+int vendor_model_publish_messages(const uint8_t *data, size_t len);
+
 #endif /* MODEL_HANDLER_H__ */

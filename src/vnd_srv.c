@@ -207,6 +207,27 @@ int bt_mesh_vendor_srv_status_send(struct bt_mesh_vendor_srv *srv,
 	}
 }
 
+
+// /** Send an node details message to all nodes. */
+// static int bt_mesh_vendor_node_details_publish(struct bt_mesh_vendor_srv *srv)
+// {
+// 	struct bt_mesh_msg_ctx ctx = {
+// 		.app_idx = srv->model.keys[0], /* Use the bound key */
+// 		.addr = BT_MESH_ADDR_ALL_NODES,
+// 		.send_ttl = BT_MESH_TTL_DEFAULT,
+// 	};
+	
+
+// 	BT_MESH_MODEL_BUF_DEFINE(buf, BT_MESH_VENDOR_OP_STATUS_NODE_DETAILS, 2);
+// 	bt_mesh_model_msg_init(&buf, BT_MESH_VENDOR_OP_STATUS_NODE_DETAILS);
+// 	net_buf_simple_add_u8(&buf, val);
+// 	net_buf_simple_add_u8(&buf, tid++);
+
+// 	printk("Sending OnOff Set: %s\n", onoff_str[val]);
+
+// 	return bt_mesh_model_send(srv->model, &ctx, &buf, NULL, NULL);
+// }
+
 int bt_mesh_vendor_srv_node_details_send(struct bt_mesh_vendor_srv *srv,
                                    struct bt_mesh_msg_ctx *ctx,
                                    struct bt_mesh_vendor_status *rsp)

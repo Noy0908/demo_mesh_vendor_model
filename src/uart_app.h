@@ -124,6 +124,11 @@ enum uart_cmd_type {
 	 */
     HOST_CONTROL_ADVERTISE_CMD,
 	/**
+	 * @brief host send comamnd to set device series number .
+	 * response with SUCCESS or ERROR.
+	 */
+    HOST_SET_DEVICE_SN_CMD,
+	/**
 	 * @brief host send comamnd to get mesh node .
 	 * response with SUCCESS or ERROR.
 	 */

@@ -15,6 +15,8 @@
 
 #include "uart_app.h"
 #include "model_handler.h"
+#include "node_app.h"
+#include "nus_setting_app.h"
 
 LOG_MODULE_REGISTER(peripheral_uart);
 
@@ -75,6 +77,8 @@ int main(void)
 
 	LOG_INF("Initializing Vendor Model Demo, the version is %s", CONFIG_FW_VERSION);
 
+	nus_settings_init();
+
 	err = uart_init();
 	if (err) {
 		error();
@@ -88,6 +92,8 @@ int main(void)
 	LOG_INF("Bluetooth initialized");
 
 	k_sem_give(&ble_init_ok);
+
+	node_app_init();
 
 	return 0;
 }

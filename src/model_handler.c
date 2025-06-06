@@ -16,6 +16,7 @@
 #include "../include/vnd_cli.h"
 #include "../include/vnd_common.h"
 #include "model_handler.h"
+#include "node_app.h"
 
 LOG_MODULE_REGISTER(model_handler, CONFIG_BT_MESH_MODEL_LOG_LEVEL);
 
@@ -243,6 +244,21 @@ int vendor_model_send_get(bt_mesh_vendor_get_type_t type, uint16_t addr, uint16_
 	return bt_mesh_vendor_cli_get(&vendor_cli, &ctx, &get, NULL);
 }
 
+/** Send an node details message to all nodes. */
+int vendor_model_publish_messages(const uint8_t *data, size_t len)
+{
+	LOG_INF("server: \"%s\"", (char *)data);
+
+	NET_BUF_SIMPLE_DEFINE(temp_buf, BT_MESH_VENDOR_MSG_MAXLEN_SET);
+	net_buf_simple_add_mem(&temp_buf, data, len);
+
+	struct bt_mesh_vendor_status details = {
+		.buf = &temp_buf
+	};
+
+	return bt_mesh_vendor_srv_node_details_send(&vendor_srv, NULL, &details);
+}
+
 
 /* Handle button events */
 static void button_handler(uint32_t pressed, uint32_t changed)
@@ -265,16 +281,23 @@ static void button_handler(uint32_t pressed, uint32_t changed)
 		}
 	}
 	if (pressed & changed & BIT(DK_BTN3)) {
-		/* Send GET message to request status */
-		err = bt_mesh_vendor_cli_get(&vendor_cli, NULL, NULL, NULL);
+		// /* Send GET message to request status */
+		// err = bt_mesh_vendor_cli_get(&vendor_cli, NULL, NULL, NULL);
+		// if (err) {
+		// 	LOG_ERR("Failed to send GET message (err: %d)", err);
+		// }
+
+		/* publish node details to All Nodes */
+		err = publish_node_details();
 		if (err) {
 			LOG_ERR("Failed to send GET message (err: %d)", err);
 		}
+		LOG_INF("Sending GET message with length parameter set to 1");
 	}
 	if (pressed & changed & BIT(DK_BTN4)) {
-		/* Send GET message with length parameter set to 1 */
+		/* Send GET message with length parameter */
 		struct bt_mesh_vendor_get get = {
-			.length = 11,
+			.length = sizeof(status_msg),
 			.type = BT_MESH_VENDOR_GET_TYPE_STATUS,
 		};
 
