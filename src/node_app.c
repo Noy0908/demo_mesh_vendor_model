@@ -117,7 +117,7 @@ int publish_node_details(void)
         LOG_ERR("Mesh is not provisioned, cannot publish node details.");
         return -ENOTCONN;
     }
-
+    
     // Publish the node details to all nodes
     int err = vendor_model_publish_messages((uint8_t *)&node_details, sizeof(node_info_t));
     if (err) 

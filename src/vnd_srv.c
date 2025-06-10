@@ -232,7 +232,7 @@ int bt_mesh_vendor_srv_node_details_send(struct bt_mesh_vendor_srv *srv,
                                    struct bt_mesh_msg_ctx *ctx,
                                    struct bt_mesh_vendor_status *rsp)
 {
-	BT_MESH_MODEL_BUF_DEFINE(msg, BT_MESH_VENDOR_OP_STATUS_NODE_DETAILS, srv->status_msg.len);
+	BT_MESH_MODEL_BUF_DEFINE(msg, BT_MESH_VENDOR_OP_STATUS_NODE_DETAILS, rsp->buf->len);
 	bt_mesh_model_msg_init(&msg, BT_MESH_VENDOR_OP_STATUS_NODE_DETAILS);
 
 	if (rsp->buf->len > 0) {

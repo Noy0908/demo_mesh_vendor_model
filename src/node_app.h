@@ -10,9 +10,9 @@
 
 typedef struct {
     uint64_t serial_number;
-    uint8_t capacity;  // Capacity for cellular network
-    uint8_t quality;    // Status of the node (e.g., online, offline)
     uint16_t mesh_address;
+    uint8_t capacity;  // Capacity for cellular network
+    uint8_t quality;    // Status of the node (e.g., online, offline)  
 } node_info_t;
 
 

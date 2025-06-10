@@ -244,16 +244,18 @@ int vendor_model_send_get(bt_mesh_vendor_get_type_t type, uint16_t addr, uint16_
 	return bt_mesh_vendor_cli_get(&vendor_cli, &ctx, &get, NULL);
 }
 
+
 /** Send an node details message to all nodes. */
 int vendor_model_publish_messages(const uint8_t *data, size_t len)
 {
-	LOG_INF("server: \"%s\"", (char *)data);
+	LOG_INF("server publish[%d]: \"%s\"", len, (char *)data);
+	// LOG_HEXDUMP_INF(data, len, "server publish:");
 
-	NET_BUF_SIMPLE_DEFINE(temp_buf, BT_MESH_VENDOR_MSG_MAXLEN_SET);
-	net_buf_simple_add_mem(&temp_buf, data, len);
+	NET_BUF_SIMPLE_DEFINE(pub_buf, BT_MESH_VENDOR_MSG_MAXLEN_SET);
+	net_buf_simple_add_mem(&pub_buf, data, len);
 
 	struct bt_mesh_vendor_status details = {
-		.buf = &temp_buf
+		.buf = &pub_buf
 	};
 
 	return bt_mesh_vendor_srv_node_details_send(&vendor_srv, NULL, &details);
@@ -289,10 +291,10 @@ static void button_handler(uint32_t pressed, uint32_t changed)
 
 		/* publish node details to All Nodes */
 		err = publish_node_details();
+		// int err = vendor_model_publish_messages((const uint8_t *)set_msg, strlen(set_msg));
 		if (err) {
 			LOG_ERR("Failed to send GET message (err: %d)", err);
 		}
-		LOG_INF("Sending GET message with length parameter set to 1");
 	}
 	if (pressed & changed & BIT(DK_BTN4)) {
 		/* Send GET message with length parameter */
