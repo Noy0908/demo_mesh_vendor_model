@@ -8,6 +8,16 @@
 #define VND_COMMON_H__
 
 #include <zephyr/bluetooth/mesh.h>
+#include <zephyr/logging/log.h>
+
+
+#define PRINT_HEX(p_label, p_text, len)\
+	({\
+		LOG_INF("---- %s (len: %u): ----", p_label, len);\
+		LOG_HEXDUMP_INF(p_text, len, "Content:");\
+		LOG_INF("---- %s end  ----", p_label);\
+	})
+
 
 /**
  * @brief Vendor Model common definitions

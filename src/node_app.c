@@ -119,7 +119,7 @@ int publish_node_details(void)
     }
     
     // Publish the node details to all nodes
-    int err = vendor_model_publish_messages((uint8_t *)&node_details, sizeof(node_info_t));
+    int err = vendor_model_publish_messages(&node_details, sizeof(node_info_t));
     if (err) 
     {
         LOG_ERR("Failed to publish node details: %d", err);

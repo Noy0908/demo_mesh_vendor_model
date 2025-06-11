@@ -9,6 +9,7 @@
 
 #include <zephyr/bluetooth/mesh.h>
 #include "vnd_cli.h"
+#include "node_app.h"
 
 /**
  * @brief Initialize the model handler module
@@ -53,6 +54,6 @@ int vendor_model_send_set_unack(const uint8_t *data, size_t len);
  * @param len      Length of data to be sent
  * @return 0 on success, negative error code otherwise
  */
-int vendor_model_publish_messages(const uint8_t *data, size_t len);
+int vendor_model_publish_messages(const node_info_t *data, size_t len);
 
 #endif /* MODEL_HANDLER_H__ */

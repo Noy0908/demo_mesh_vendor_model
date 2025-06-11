@@ -101,7 +101,7 @@ static int handle_get(const struct bt_mesh_model *model, struct bt_mesh_msg_ctx 
 			break;
 		case BT_MESH_VENDOR_GET_TYPE_NODE_DETAILS:
 			LOG_DBG("GET request for node details");
-			return bt_mesh_vendor_srv_node_details_send(srv, ctx, &rsp);
+			return bt_mesh_vendor_srv_pub(srv, ctx, &rsp);
 			break;
 		case BT_MESH_VENDOR_GET_TYPE_METER_DATA:
 			LOG_DBG("GET request for meter data");
@@ -223,7 +223,8 @@ int bt_mesh_vendor_srv_pub(struct bt_mesh_vendor_srv *srv,
 	if (value->buf->len > 0) {
 		net_buf_simple_add_mem(&msg, value->buf->data, value->buf->len);
 	}
-	LOG_DBG("Publishing NODE DETAILS message, data length %d", value->buf->len);
+	// LOG_DBG("Publishing NODE DETAILS message, data length %d", value->buf->len);
+	PRINT_HEX("server publish:", value->buf->data, value->buf->len);
 
 	err = bt_mesh_msg_send(srv->model, ctx, &msg);
 	if (err) {
@@ -232,27 +233,6 @@ int bt_mesh_vendor_srv_pub(struct bt_mesh_vendor_srv *srv,
 	return 0;
 }
 
-int bt_mesh_vendor_srv_node_details_send(struct bt_mesh_vendor_srv *srv,
-                                   struct bt_mesh_msg_ctx *ctx,
-                                   struct bt_mesh_vendor_status *rsp)
-{
-	BT_MESH_MODEL_BUF_DEFINE(msg, BT_MESH_VENDOR_OP_STATUS_NODE_DETAILS, rsp->buf->len);
-	bt_mesh_model_msg_init(&msg, BT_MESH_VENDOR_OP_STATUS_NODE_DETAILS);
-
-	if (rsp->buf->len > 0) {
-		net_buf_simple_add_mem(&msg, rsp->buf->data, rsp->buf->len);
-	}
-
-	LOG_DBG("Sending NODE DETAILS message, data length %d", rsp->buf->len);
-
-	// if (ctx) {
-	// 	return bt_mesh_model_send(srv->model, ctx, &msg, NULL, NULL);
-	// } else {
-	// 	return bt_mesh_model_publish(srv->model);
-	// }
-	/* No acknowledgment is expected, so we use direct send */
-	return bt_mesh_msg_send(srv->model, ctx, &msg);
-}
 
 
 int bt_mesh_vendor_srv_meter_data_send(struct bt_mesh_vendor_srv *srv,
