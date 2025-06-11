@@ -258,7 +258,8 @@ int vendor_model_publish_messages(const uint8_t *data, size_t len)
 		.buf = &pub_buf
 	};
 
-	return bt_mesh_vendor_srv_node_details_send(&vendor_srv, NULL, &details);
+	// return bt_mesh_vendor_srv_node_details_send(&vendor_srv, NULL, &details);
+	return bt_mesh_vendor_srv_pub(&vendor_srv, NULL, &details);
 }
 
 

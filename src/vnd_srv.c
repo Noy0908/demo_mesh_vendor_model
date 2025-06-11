@@ -8,6 +8,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/kernel.h>
 #include "../include/vnd_srv.h"
+#include "model_utils.h"
 
 LOG_MODULE_REGISTER(vnd_srv, CONFIG_BT_MESH_MODEL_LOG_LEVEL);
 
@@ -159,9 +160,10 @@ static int vendor_srv_init(const struct bt_mesh_model *model)
 	struct bt_mesh_vendor_srv *srv = model->rt->user_data;
 
 	srv->model = model;
+	srv->pub.msg = &srv->pub_msg;
 	net_buf_simple_init_with_data(&srv->pub_msg, srv->buf, sizeof(srv->buf));
 	net_buf_simple_init_with_data(&srv->status_msg, srv->status_buf_data, sizeof(srv->status_buf_data));
-	bt_mesh_model_msg_init(&srv->pub_msg, BT_MESH_VENDOR_OP_STATUS);
+	// bt_mesh_model_msg_init(&srv->pub_msg, BT_MESH_VENDOR_OP_STATUS);
 	net_buf_simple_reset(&srv->status_msg);
 
 	/* Make sure get set handlers are set*/
@@ -208,25 +210,27 @@ int bt_mesh_vendor_srv_status_send(struct bt_mesh_vendor_srv *srv,
 }
 
 
-// /** Send an node details message to all nodes. */
-// static int bt_mesh_vendor_node_details_publish(struct bt_mesh_vendor_srv *srv)
-// {
-// 	struct bt_mesh_msg_ctx ctx = {
-// 		.app_idx = srv->model.keys[0], /* Use the bound key */
-// 		.addr = BT_MESH_ADDR_ALL_NODES,
-// 		.send_ttl = BT_MESH_TTL_DEFAULT,
-// 	};
-	
+int bt_mesh_vendor_srv_pub(struct bt_mesh_vendor_srv *srv,
+			   struct bt_mesh_msg_ctx *ctx,
+			   struct bt_mesh_vendor_status *value)
+{
+	int err;
 
-// 	BT_MESH_MODEL_BUF_DEFINE(buf, BT_MESH_VENDOR_OP_STATUS_NODE_DETAILS, 2);
-// 	bt_mesh_model_msg_init(&buf, BT_MESH_VENDOR_OP_STATUS_NODE_DETAILS);
-// 	net_buf_simple_add_u8(&buf, val);
-// 	net_buf_simple_add_u8(&buf, tid++);
+	BT_MESH_MODEL_BUF_DEFINE(msg, BT_MESH_VENDOR_OP_STATUS_NODE_DETAILS,
+				 value->buf->len);
+	bt_mesh_model_msg_init(&msg, BT_MESH_VENDOR_OP_STATUS_NODE_DETAILS);
 
-// 	printk("Sending OnOff Set: %s\n", onoff_str[val]);
+	if (value->buf->len > 0) {
+		net_buf_simple_add_mem(&msg, value->buf->data, value->buf->len);
+	}
+	LOG_DBG("Publishing NODE DETAILS message, data length %d", value->buf->len);
 
-// 	return bt_mesh_model_send(srv->model, &ctx, &buf, NULL, NULL);
-// }
+	err = bt_mesh_msg_send(srv->model, ctx, &msg);
+	if (err) {
+		return err;
+	}
+	return 0;
+}
 
 int bt_mesh_vendor_srv_node_details_send(struct bt_mesh_vendor_srv *srv,
                                    struct bt_mesh_msg_ctx *ctx,
@@ -241,11 +245,13 @@ int bt_mesh_vendor_srv_node_details_send(struct bt_mesh_vendor_srv *srv,
 
 	LOG_DBG("Sending NODE DETAILS message, data length %d", rsp->buf->len);
 
-	if (ctx) {
-		return bt_mesh_model_send(srv->model, ctx, &msg, NULL, NULL);
-	} else {
-		return bt_mesh_model_publish(srv->model);
-	}
+	// if (ctx) {
+	// 	return bt_mesh_model_send(srv->model, ctx, &msg, NULL, NULL);
+	// } else {
+	// 	return bt_mesh_model_publish(srv->model);
+	// }
+	/* No acknowledgment is expected, so we use direct send */
+	return bt_mesh_msg_send(srv->model, ctx, &msg);
 }
 
 

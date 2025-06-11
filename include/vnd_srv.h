@@ -126,6 +126,11 @@ int bt_mesh_vendor_srv_status_send(struct bt_mesh_vendor_srv *srv,
                                    struct bt_mesh_msg_ctx *ctx,
                                    struct bt_mesh_vendor_status *rsp);
 
+
+int bt_mesh_vendor_srv_pub(struct bt_mesh_vendor_srv *srv,
+			   struct bt_mesh_msg_ctx *ctx,
+			   struct bt_mesh_vendor_status *value);
+
 /**
  * @brief Send a node details message
  *
