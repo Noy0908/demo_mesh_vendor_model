@@ -149,13 +149,17 @@ static int handle_vendor_get(struct bt_mesh_vendor_srv *srv,
 		break;
 	case BT_MESH_VENDOR_GET_TYPE_NODE_DETAILS:	
 		net_buf_simple_reset(rsp->buf);
-		net_buf_simple_add_u8(rsp->buf, BT_MESH_VENDOR_GET_TYPE_NODE_DETAILS);
-		net_buf_simple_add_mem(rsp->buf, status_msg, len);
+		// net_buf_simple_add_u8(rsp->buf, BT_MESH_VENDOR_GET_TYPE_NODE_DETAILS);
+		// net_buf_simple_add_mem(rsp->buf, status_msg, len);
+		net_buf_simple_add_le64(rsp->buf, node_details.serial_number);
+		net_buf_simple_add_le16(rsp->buf, node_details.mesh_address);
+		net_buf_simple_add_u8(rsp->buf, node_details.capacity);
+		net_buf_simple_add_u8(rsp->buf, node_details.quality);
 		LOG_INF("GET request for node details");
 		break;
 	case BT_MESH_VENDOR_GET_TYPE_METER_DATA:
 		net_buf_simple_reset(rsp->buf);
-		net_buf_simple_add_u8(rsp->buf, BT_MESH_VENDOR_GET_TYPE_NODE_DETAILS);
+		net_buf_simple_add_u8(rsp->buf, BT_MESH_VENDOR_GET_TYPE_METER_DATA);
 		net_buf_simple_add_mem(rsp->buf, status_msg, len);
 		LOG_INF("GET request for meter data");
 		break;
@@ -185,23 +189,12 @@ static void handle_vendor_status(struct bt_mesh_vendor_cli *cli,
 		len = BT_MESH_VENDOR_MSG_MAXLEN_STATUS;
 	}
 
-	bt_mesh_vendor_get_type_t get_type = net_buf_simple_pull_u8(status->buf); // Pull the type byte, if present
-
 	if (len > 0) {
-		// memcpy(data, status->buf->data, len);
-		// data[len] = '\0'; /* Null-terminate the string */
-		node_info_t info = {0};
-		info.serial_number = net_buf_simple_pull_le64(status->buf);
-		info.mesh_address  = net_buf_simple_pull_le16(status->buf);
-		info.capacity      = net_buf_simple_pull_u8(status->buf);
-		info.quality       = net_buf_simple_pull_u8(status->buf);
-		// memcpy(&new_node, data, sizeof(node_info_t));
-		LOG_INF("Received Node Info: Type: %d, Serial Number: 0x%012llX, Mesh Address: %u, Capacity: %u, Quality: %u",
-			get_type, (long long unsigned int) info.serial_number, info.mesh_address,
-			info.capacity, info.quality);
-		// Update the node path table with the new node information
-		// update_node_path_table(info);
-	}	
+		memcpy(data, status->buf->data, len);
+		data[len] = '\0'; /* Null-terminate the string */
+	}
+
+	LOG_INF("Received STATUS response: \"%s\"", data);	
 }
 
 
@@ -257,12 +250,8 @@ int vendor_model_send_get(bt_mesh_vendor_get_type_t type, uint16_t addr, uint16_
 /** Send an node details message to all nodes. */
 int vendor_model_publish_messages(const node_info_t *data, size_t len)
 {
-	// LOG_INF("server publish[%d]: \"%s\"", len, (char *)data);
-	// LOG_HEXDUMP_INF(data, len, "server publish:");
-
 	NET_BUF_SIMPLE_DEFINE(pub_buf, BT_MESH_VENDOR_MSG_MAXLEN_SET);
 	// net_buf_simple_add_mem(&pub_buf, data, len);
-	net_buf_simple_add_u8(&pub_buf, BT_MESH_VENDOR_GET_TYPE_NODE_DETAILS);
 	net_buf_simple_add_le64(&pub_buf, data->serial_number);
     net_buf_simple_add_le16(&pub_buf, data->mesh_address);
     net_buf_simple_add_u8(&pub_buf, data->capacity);
@@ -272,7 +261,7 @@ int vendor_model_publish_messages(const node_info_t *data, size_t len)
 		.buf = &pub_buf
 	};
 
-	return bt_mesh_vendor_srv_pub(&vendor_srv, NULL, &details);
+	return bt_mesh_vendor_srv_node_details_send(&vendor_srv, NULL, &details);
 }
 
 
@@ -316,10 +305,9 @@ static void button_handler(uint32_t pressed, uint32_t changed)
 			.type = BT_MESH_VENDOR_GET_TYPE_STATUS,
 		};
 
-		LOG_INF("Sending GET message with length parameter set to 11");
 		err = bt_mesh_vendor_cli_get(&vendor_cli, NULL, &get, NULL);
 		if (err) {
-			LOG_ERR("Failed to send GET message with length=1 (err: %d)", err);
+			LOG_ERR("Failed to send GET message with length (err: %d)", err);
 		}
 	}
 }

@@ -31,6 +31,8 @@ extern void node_path_table_init(void);
 
 extern void update_node_path_table(node_info_t new_node);
 
+extern void print_node_path_table(void);
+
 extern uint16_t get_remote_node_addr(uint64_t serial_number);
 
 

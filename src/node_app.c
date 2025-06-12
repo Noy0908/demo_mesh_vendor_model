@@ -1,4 +1,5 @@
 #include <zephyr/kernel.h>
+#include <zephyr/bluetooth/mesh/access.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h> 
@@ -26,8 +27,6 @@ static node_table_t node_table[NODE_INFO_TABLE_SIZE];
 static struct k_work_delayable node_update_work;
 
 
-
-
 void node_path_table_init(void) 
 {
     for (int i = 0; i < NODE_INFO_TABLE_SIZE; ++i) 
@@ -40,6 +39,13 @@ void node_path_table_init(void)
 void update_node_path_table(node_info_t new_node) 
 {
     int64_t current_time = k_uptime_get();
+
+    if( new_node.serial_number == node_details.serial_number || new_node.serial_number == 0) 
+    {
+        // Do not update the table with own node info or empty serial number
+        LOG_DBG("Skipping update for own node or empty serial number.");
+        return;
+    }
 
     // Try to find existing entry
     for (int i = 0; i < NODE_INFO_TABLE_SIZE; ++i) 
@@ -79,6 +85,23 @@ void update_node_path_table(node_info_t new_node)
     node_table[oldest_index].timestamp = current_time;
 }
 
+void print_node_path_table(void) 
+{
+    LOG_INF("Node Path Table:");
+    for (int i = 0; i < NODE_INFO_TABLE_SIZE; ++i) 
+    {
+        if (node_table[i].node_info.serial_number != 0) 
+        {
+            LOG_INF("Index %d: Serial: 0x%012llX, Mesh Addr: 0x%04X, Capacity: %u, Quality: %u, Timestamp: %d",
+                    i,
+                    (long long unsigned int) node_table[i].node_info.serial_number,
+                    node_table[i].node_info.mesh_address,
+                    node_table[i].node_info.capacity,
+                    node_table[i].node_info.quality,
+                    node_table[i].timestamp);
+        }
+    }
+}
 
 
 void purge_obsolete_node_info(void) 
@@ -118,6 +141,7 @@ int publish_node_details(void)
         return -ENOTCONN;
     }
     
+    node_details.mesh_address = bt_mesh_primary_addr();
     // Publish the node details to all nodes
     int err = vendor_model_publish_messages(&node_details, sizeof(node_info_t));
     if (err) 
@@ -146,6 +170,10 @@ static void update_node_details(struct k_work *work)
 void node_app_init(void) 
 {
     node_details.serial_number = get_device_sn(); // Load device serial number from settings
+    if(bt_mesh_is_provisioned())
+    {
+        node_details.mesh_address = bt_mesh_primary_addr();
+    }
 
     // start work queue with random delay up to 100s
     uint8_t delay_s = (rand() % (MAX_DELAY_SECONDS + 1));

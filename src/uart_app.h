@@ -139,6 +139,11 @@ enum uart_cmd_type {
 	 */
     HOST_GET_METER_DATA_CMD,
 	/**
+	 * @brief host request node's path table .
+	 * response with SUCCESS or ERROR.
+	 */
+    HOST_GET_NODE_PATH_TABLE,
+	/**
 	 * @brief slave send URC to host .
 	 * response with SUCCESS or ERROR.
 	 */

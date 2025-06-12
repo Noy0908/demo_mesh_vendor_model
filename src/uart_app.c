@@ -870,6 +870,15 @@ void handle_uart_data(struct uart_data_t * uart_data)
 		get_meter_data(&command, &response);
 		LOG_INF("Received command HOST_GET_METER_DATA_CMD");
 		break;
+	case HOST_GET_NODE_PATH_TABLE:
+		// get_node_path_table(&command, &response);	
+		print_node_path_table(); // For debugging purposes, print the node path table
+		LOG_INF("Received command HOST_GET_NODE_PATH_TABLE");
+		response.cmd = HOST_GET_NODE_PATH_TABLE;
+		response.len = 2;
+		response.data[0] = 0;
+		response.data[1] = 0;
+		break;
     default:
 		response.cmd = HOST_COMMAND_ERROR_CODE_CMD;
 		response.len = 2;

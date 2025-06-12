@@ -129,14 +129,14 @@ int bt_mesh_vendor_srv_status_send(struct bt_mesh_vendor_srv *srv,
 
 
 /**
- * @brief server model publish message
+ * @brief server model send message
  *
  * @param srv Vendor Server model
  * @param ctx Message context to send with, or NULL to publish
  * @param rsp Vendor status message to be sent
  * @return 0 on success, or negative error code otherwise
  */
-int bt_mesh_vendor_srv_pub(struct bt_mesh_vendor_srv *srv,
+int bt_mesh_vendor_srv_node_details_send(struct bt_mesh_vendor_srv *srv,
 			   struct bt_mesh_msg_ctx *ctx,
 			   struct bt_mesh_vendor_status *value);
 
