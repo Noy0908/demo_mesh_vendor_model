@@ -6,7 +6,7 @@
 
 #include "node_app.h"
 #include "model_handler.h"
-#include "nus_setting_app.h"
+
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(model_handler, CONFIG_BT_MESH_MODEL_LOG_LEVEL);
@@ -14,12 +14,7 @@ LOG_MODULE_DECLARE(model_handler, CONFIG_BT_MESH_MODEL_LOG_LEVEL);
 #define MAX_DELAY_SECONDS 100
 
 
-node_info_t node_details = {
-    .serial_number = 0,
-    .capacity = 0,
-    .quality = 0,
-    .mesh_address = 0,
-};
+node_info_t node_details = {0};
 
 static node_table_t node_table[NODE_INFO_TABLE_SIZE];
 
@@ -35,12 +30,23 @@ void node_path_table_init(void)
     }
 }
 
+bool is_node_sn_valid(uint8_t *arr)
+{
+    for (size_t i = 0; i < DEVICE_SN_SIZE; i++) 
+    {
+        if (arr[i] != 0) {
+            return true;  
+        }
+    }
+    return false;
+}
 
 void update_node_path_table(node_info_t new_node) 
 {
     int64_t current_time = k_uptime_get();
 
-    if( new_node.serial_number == node_details.serial_number || new_node.serial_number == 0) 
+    if(memcmp(new_node.serial_number, node_details.serial_number, DEVICE_SN_SIZE) == 0 ||
+         !is_node_sn_valid(new_node.serial_number))
     {
         // Do not update the table with own node info or empty serial number
         LOG_DBG("Skipping update for own node or empty serial number.");
@@ -50,7 +56,8 @@ void update_node_path_table(node_info_t new_node)
     // Try to find existing entry
     for (int i = 0; i < NODE_INFO_TABLE_SIZE; ++i) 
     {
-        if (node_table[i].node_info.serial_number == new_node.serial_number) 
+        // if (node_table[i].node_info.serial_number == new_node.serial_number) 
+        if(memcmp(new_node.serial_number, node_table[i].node_info.serial_number, DEVICE_SN_SIZE) == 0)
         {
             node_table[i].node_info = new_node;
             node_table[i].timestamp = current_time;
@@ -61,7 +68,8 @@ void update_node_path_table(node_info_t new_node)
     // Try to find an empty slot
     for (int i = 0; i < NODE_INFO_TABLE_SIZE; ++i) 
     {
-        if (node_table[i].node_info.serial_number == 0) 
+        // if (node_table[i].node_info.serial_number == 0) 
+        if(!is_node_sn_valid(node_table[i].node_info.serial_number)) 
         {
             node_table[i].node_info = new_node;
             node_table[i].timestamp = current_time;
@@ -90,11 +98,14 @@ void print_node_path_table(void)
     LOG_INF("Node Path Table:");
     for (int i = 0; i < NODE_INFO_TABLE_SIZE; ++i) 
     {
-        if (node_table[i].node_info.serial_number != 0) 
+        // if (node_table[i].node_info.serial_number != 0) 
+        if(is_node_sn_valid(node_table[i].node_info.serial_number))
         {
-            LOG_INF("Index %d: Serial: 0x%012llX, Mesh Addr: 0x%04X, Capacity: %u, Quality: %u, Timestamp: %d",
+            LOG_INF("Index %d: Serial: 0X%02X%02X%02X%02X%02X%02X, Mesh Addr: 0x%04X, Capacity: %u, Quality: %u, Timestamp: %d",
                     i,
-                    (long long unsigned int) node_table[i].node_info.serial_number,
+                    node_table[i].node_info.serial_number[0],node_table[i].node_info.serial_number[1],
+                    node_table[i].node_info.serial_number[2],node_table[i].node_info.serial_number[3],
+                    node_table[i].node_info.serial_number[4],node_table[i].node_info.serial_number[5],
                     node_table[i].node_info.mesh_address,
                     node_table[i].node_info.capacity,
                     node_table[i].node_info.quality,
@@ -110,8 +121,10 @@ void purge_obsolete_node_info(void)
 
     for (int i = 0; i < NODE_INFO_TABLE_SIZE; ++i) 
     {
-        if (node_table[i].node_info.serial_number != 0 &&
-            (now - node_table[i].timestamp) > NODE_INFO_TIMEOUT) 
+        // if (node_table[i].node_info.serial_number != 0 &&
+        //     (now - node_table[i].timestamp) > NODE_INFO_TIMEOUT) 
+        if(is_node_sn_valid(node_table[i].node_info.serial_number) &&
+           (now - node_table[i].timestamp) > NODE_INFO_TIMEOUT) 
         {
             // Mark entry as empty
             memset(&node_table[i], 0, sizeof(node_table_t));
@@ -120,11 +133,12 @@ void purge_obsolete_node_info(void)
 }
 
 
-uint16_t get_remote_node_addr(uint64_t serial_number)
+uint16_t get_remote_node_addr(uint8_t *serial_number)
 {
     for (int i = 0; i < NODE_INFO_TABLE_SIZE; ++i) 
     {
-        if (node_table[i].node_info.serial_number == serial_number) 
+        // if (node_table[i].node_info.serial_number == serial_number) 
+        if(memcmp(serial_number, node_table[i].node_info.serial_number, DEVICE_SN_SIZE) == 0)
         {
             return node_table[i].node_info.mesh_address;
         }
@@ -169,7 +183,8 @@ static void update_node_details(struct k_work *work)
 
 void node_app_init(void) 
 {
-    node_details.serial_number = get_device_sn(); // Load device serial number from settings
+    // node_details.serial_number = get_device_sn(); // Load device serial number from settings
+    memcpy(node_details.serial_number, get_device_sn(), DEVICE_SN_SIZE);
     if(bt_mesh_is_provisioned())
     {
         node_details.mesh_address = bt_mesh_primary_addr();

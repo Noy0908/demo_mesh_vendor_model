@@ -2,14 +2,14 @@
 #define __NODE_APP_H_
 
 #include <zephyr/kernel.h>
-
+#include "nus_setting_app.h"
 
 
 #define NODE_INFO_TABLE_SIZE            10
 #define NODE_INFO_TIMEOUT               (60 * 60)  // 1 hour in seconds
 
 typedef struct {
-    uint64_t serial_number;
+    uint8_t serial_number[DEVICE_SN_SIZE]; // Device serial number
     uint16_t mesh_address;
     uint8_t capacity;  // Capacity for cellular network
     uint8_t quality;    // Status of the node (e.g., online, offline)  
@@ -33,7 +33,7 @@ extern void update_node_path_table(node_info_t new_node);
 
 extern void print_node_path_table(void);
 
-extern uint16_t get_remote_node_addr(uint64_t serial_number);
+extern uint16_t get_remote_node_addr(uint8_t *serial_number);
 
 
 #endif

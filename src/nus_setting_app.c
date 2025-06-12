@@ -12,7 +12,7 @@ LOG_MODULE_DECLARE(peripheral_uart);
 
 static uint8_t new_mac[6] = {0};
 static uint32_t new_baudrate = 0;
-static uint64_t serial_number = 0;
+static uint8_t serial_number[DEVICE_SN_SIZE] = {0};
 
 static int nus_settings_set(const char *name, size_t len, settings_read_cb read_cb,
 					 void *cb_arg)
@@ -57,11 +57,12 @@ static int nus_settings_set(const char *name, size_t len, settings_read_cb read_
 		{
 			return -EINVAL;
 		}
-		rc = read_cb(cb_arg, &serial_number, sizeof(serial_number));
+		rc = read_cb(cb_arg, serial_number, sizeof(serial_number));
         if(rc >= 0)
         {
              /* key-value pair was properly read. rc contains value length.*/
-            LOG_INF("serial_number: 0x%012llX\n", (long long unsigned int) serial_number);
+            LOG_INF("serial_number: 0x%02X%02X%02X%02X%02X%02X\n", serial_number[0], serial_number[1], 
+                    serial_number[2], serial_number[3], serial_number[4], serial_number[5]);
 		    return 0;
         }
 	}
@@ -77,7 +78,7 @@ static int nus_settings_export(int (*storage_func)(const char *name,
     int err = 0;
     err = storage_func("nus/mac_address", new_mac, sizeof(new_mac));
     err += storage_func("nus/baudrate", &new_baudrate, sizeof(new_baudrate));
-    err += storage_func("nus/sn", &serial_number, sizeof(serial_number));
+    err += storage_func("nus/sn", serial_number, sizeof(serial_number));
     return  err;
 }
 
@@ -136,13 +137,8 @@ int16_t save_device_sn(uint8_t *data, uint8_t len)
     }
 
 	// serial_number = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
-    for (uint8_t i = 0; i < len; i++) {
-        serial_number <<= 8;
-        serial_number |= data[i];
-    }
-	LOG_INF("save_sn: 0x%012llX\n", (long long unsigned int) serial_number);
-	
-	err = settings_save_one("nus/sn", &serial_number, sizeof(serial_number));
+    memcpy(serial_number, data, len);
+	err = settings_save_one("nus/sn", serial_number, sizeof(serial_number));
 	return err;
 }
 
@@ -172,14 +168,15 @@ uint32_t get_uart_baudrate(void)
     return new_baudrate;
 }
 
-uint64_t get_device_sn(void)
+uint8_t * get_device_sn(void)
 {
 	if(settings_load_subtree("nus/sn"))
     {
         LOG_ERR("Failed to load nus settings");
         return 0;
     }
-    LOG_INF("get device_sn: 0x%012llX\n", (long long unsigned int) serial_number);
+    LOG_INF("get device_sn: 0x%02X%02X%02X%02X%02X%02X\n", serial_number[0], serial_number[1], 
+            serial_number[2], serial_number[3], serial_number[4], serial_number[5]);
 	
     return serial_number;
 }

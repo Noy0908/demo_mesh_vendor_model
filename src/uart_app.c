@@ -610,7 +610,8 @@ static void uart_set_device_sn(struct uart_cmd_rsp_t * uart_data, struct uart_cm
 		else
 		{
 			response->cmd = HOST_SET_DEVICE_SN_CMD;
-			node_details.serial_number = get_device_sn(); // Update the node details with the new serial number
+			// node_details.serial_number = get_device_sn(); // Update the node details with the new serial number
+			memcpy(node_details.serial_number, get_device_sn(), DEVICE_SN_SIZE);
 		}
 		// memcpy(response->data, &err, sizeof(err));
 		response->data[0] = (err >> 8) & 0xFF;
@@ -621,31 +622,33 @@ static void uart_set_device_sn(struct uart_cmd_rsp_t * uart_data, struct uart_cm
 	{
 		response->cmd = HOST_SET_DEVICE_SN_CMD;
 		response->len = DEVICE_SN_SIZE;	
-		uint64_t serial_number = get_device_sn();
-		response->data[0] = (serial_number >> 40) & 0xFF;
-		response->data[1] = (serial_number >> 32) & 0xFF;
-		response->data[2] = (serial_number >> 24) & 0xFF;
-		response->data[3] = (serial_number >> 16) & 0xFF;
-		response->data[4] = (serial_number >> 8) & 0xFF;
-		response->data[5] = serial_number & 0xFF;
+		memcpy(response->data, get_device_sn(), DEVICE_SN_SIZE);
+		// uint64_t serial_number = get_device_sn();
+		// response->data[0] = (serial_number >> 40) & 0xFF;
+		// response->data[1] = (serial_number >> 32) & 0xFF;
+		// response->data[2] = (serial_number >> 24) & 0xFF;
+		// response->data[3] = (serial_number >> 16) & 0xFF;
+		// response->data[4] = (serial_number >> 8) & 0xFF;
+		// response->data[5] = serial_number & 0xFF;
 	}
 }
 
 static void get_mesh_node_details(struct uart_cmd_rsp_t * uart_data, struct uart_cmd_rsp_t *response)
 {	
 	int16_t err = 0;
-	uint64_t device_sn = 0;
-	// memcpy(&device_sn, uart_data->data, DEVICE_SN_SIZE);
-	for (int i = 0; i < DEVICE_SN_SIZE; i++) {
-        device_sn <<= 8;
-        device_sn |= uart_data->data[i];
-    }
+	uint8_t device_sn[DEVICE_SN_SIZE] = {0};
+	memcpy(device_sn, uart_data->data, DEVICE_SN_SIZE);
+	// for (int i = 0; i < DEVICE_SN_SIZE; i++) {
+    //     device_sn <<= 8;
+    //     device_sn |= uart_data->data[i];
+    // }
 	
-	LOG_INF("Device SN: 0x%012llX\n", (long long unsigned int) device_sn);	
+	LOG_INF("Get SN: 0x%02X:%02X:%02X:%02X:%02X:%02X\n", device_sn[0], device_sn[1], 
+			device_sn[2], device_sn[3], device_sn[4], device_sn[5]);	
 	uint16_t addr = get_remote_node_addr(device_sn);
 	if(0 == addr)
 	{
-		LOG_ERR("Failed to get remote node address for SN: 0x%012llX", device_sn);
+		LOG_ERR("Failed to get remote node address for SN!");
 		err = -ENOENT;
 	}
 	else
@@ -676,18 +679,15 @@ static void get_mesh_node_details(struct uart_cmd_rsp_t * uart_data, struct uart
 static void get_meter_data(struct uart_cmd_rsp_t * uart_data, struct uart_cmd_rsp_t *response)
 {	
 	int16_t err = 0;
-	uint64_t device_sn = 0;
-	// memcpy(&device_sn, uart_data->data, DEVICE_SN_SIZE);
-	for (int i = 0; i < DEVICE_SN_SIZE; i++) {
-        device_sn <<= 8;
-        device_sn |= uart_data->data[i];
-    }
+	uint8_t device_sn[DEVICE_SN_SIZE] = {0};
+	memcpy(device_sn, uart_data->data, DEVICE_SN_SIZE);
 	
-	LOG_INF("Device SN: 0x%012llX\n", (long long unsigned int) device_sn);	
+	LOG_INF("Get SN: 0x%02X:%02X:%02X:%02X:%02X:%02X\n", device_sn[0], device_sn[1], 
+			device_sn[2], device_sn[3], device_sn[4], device_sn[5]);
 	uint16_t addr = get_remote_node_addr(device_sn);
 	if(0 == addr)
 	{
-		LOG_ERR("Failed to get remote node address for SN: 0x%012llX", device_sn);
+		LOG_ERR("Failed to get remote node address for SN!");
 		err = -ENOENT;
 	}
 	else

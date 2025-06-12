@@ -19,7 +19,7 @@
 
  uint32_t get_uart_baudrate(void);
 
- uint64_t get_device_sn(void);
+ uint8_t * get_device_sn(void);
 
  void nus_settings_init(void);
 

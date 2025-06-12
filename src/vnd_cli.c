@@ -54,17 +54,18 @@ static int handle_node_details_status(const struct bt_mesh_model *model, \
 		bt_mesh_msg_ack_ctx_rx(&cli->ack_ctx);
 	}
 
-	node_info_t info = {0};
-	info.serial_number = net_buf_simple_pull_le64(buf);
-	info.mesh_address  = net_buf_simple_pull_le16(buf);
-	// info.mesh_address = ctx->addr;
-	info.capacity      = net_buf_simple_pull_u8(buf);
-	info.quality       = net_buf_simple_pull_u8(buf);
+	node_info_t *info = net_buf_simple_pull_mem(buf, sizeof(node_info_t));
+	// info.serial_number = net_buf_simple_pull_le64(buf);
+	// info.mesh_address  = net_buf_simple_pull_le16(buf);
+	// // info.mesh_address = ctx->addr;
+	// info.capacity      = net_buf_simple_pull_u8(buf);
+	// info.quality       = net_buf_simple_pull_u8(buf);
 	// memcpy(&new_node, data, sizeof(node_info_t));
-	LOG_INF("Received Node Info:  Serial Number: 0x%012llX, Mesh Address: 0x%04X, remote Address: 0x%04X, Capacity: %u, Quality: %u",
-		(long long unsigned int) info.serial_number, info.mesh_address, ctx->addr, info.capacity, info.quality);
+	LOG_INF("Received Node Info:  Serial Number: 0x%02X%02X%02X%02X%02X%02X, Mesh Address: 0x%04X, remote Address: 0x%04X, Capacity: %u, Quality: %u",
+		info->serial_number[0],info->serial_number[1],info->serial_number[2],info->serial_number[3],info->serial_number[4],info->serial_number[5],
+		info->mesh_address, ctx->addr, info->capacity, info->quality);
 	// Update the node path table with the new node information
-	update_node_path_table(info);
+	update_node_path_table(*info);
 
 	return 0;
 }

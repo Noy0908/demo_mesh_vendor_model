@@ -149,12 +149,11 @@ static int handle_vendor_get(struct bt_mesh_vendor_srv *srv,
 		break;
 	case BT_MESH_VENDOR_GET_TYPE_NODE_DETAILS:	
 		net_buf_simple_reset(rsp->buf);
-		// net_buf_simple_add_u8(rsp->buf, BT_MESH_VENDOR_GET_TYPE_NODE_DETAILS);
-		// net_buf_simple_add_mem(rsp->buf, status_msg, len);
-		net_buf_simple_add_le64(rsp->buf, node_details.serial_number);
-		net_buf_simple_add_le16(rsp->buf, node_details.mesh_address);
-		net_buf_simple_add_u8(rsp->buf, node_details.capacity);
-		net_buf_simple_add_u8(rsp->buf, node_details.quality);
+		net_buf_simple_add_mem(rsp->buf, &node_details, sizeof(node_info_t));
+		// net_buf_simple_add_le64(rsp->buf, node_details.serial_number);
+		// net_buf_simple_add_le16(rsp->buf, node_details.mesh_address);
+		// net_buf_simple_add_u8(rsp->buf, node_details.capacity);
+		// net_buf_simple_add_u8(rsp->buf, node_details.quality);
 		LOG_INF("GET request for node details");
 		break;
 	case BT_MESH_VENDOR_GET_TYPE_METER_DATA:
@@ -251,11 +250,11 @@ int vendor_model_send_get(bt_mesh_vendor_get_type_t type, uint16_t addr, uint16_
 int vendor_model_publish_messages(const node_info_t *data, size_t len)
 {
 	NET_BUF_SIMPLE_DEFINE(pub_buf, BT_MESH_VENDOR_MSG_MAXLEN_SET);
-	// net_buf_simple_add_mem(&pub_buf, data, len);
-	net_buf_simple_add_le64(&pub_buf, data->serial_number);
-    net_buf_simple_add_le16(&pub_buf, data->mesh_address);
-    net_buf_simple_add_u8(&pub_buf, data->capacity);
-    net_buf_simple_add_u8(&pub_buf, data->quality);
+	net_buf_simple_add_mem(&pub_buf, data, len);
+	// net_buf_simple_add_le64(&pub_buf, data->serial_number);
+    // net_buf_simple_add_le16(&pub_buf, data->mesh_address);
+    // net_buf_simple_add_u8(&pub_buf, data->capacity);
+    // net_buf_simple_add_u8(&pub_buf, data->quality);
 
 	struct bt_mesh_vendor_status details = {
 		.buf = &pub_buf
